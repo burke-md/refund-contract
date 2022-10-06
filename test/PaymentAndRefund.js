@@ -29,13 +29,13 @@ describe("PaymentAndRefund", function () {
       expect(true).to.equal(false);
     });
 
-    it("User can deposite USDC", async function () {
+    it("User can deposit USDC", async function () {
       const { instance, admin } = await loadFixture(deployFixture);
 
       expect(true).to.equal(false);
     });
 
-    it("Deposites will increment global var ` `", async function () {
+    it("Deposits will increment global var ` `", async function () {
       const { instance, admin } = await loadFixture(deployFixture);
 
       expect(true).to.equal(false);
