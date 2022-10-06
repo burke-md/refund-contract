@@ -7,7 +7,7 @@ const { expect, use} = require("chai");
 
 use(require("chai-as-promised"));
 
-const USDCAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 describe("PaymentAndRefund", function () {
   // Use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -15,7 +15,7 @@ describe("PaymentAndRefund", function () {
     const [admin, user1, user2] = await ethers.getSigners();
 
     const Contract = await ethers.getContractFactory("PaymentAndRefund");
-    const instance = await Contract.deploy(USDCAddress);
+    const instance = await Contract.deploy(USDC_ADDRESS);
 
     await instance.deployed();
 
