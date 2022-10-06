@@ -8,7 +8,7 @@ module.exports = {
     netoworks: {
         hardhat: {
             forking: {
-                url: `https://eth-rinkeby.alchemyapi.io/v2/${alchemyKey}`,
+                url: `https://eth-mainnet.alchemyapi.io/v2/${alchemyKey}`,
                 blockNumber: 15685704
             }
         }

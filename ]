@@ -4,12 +4,12 @@ const {
 } = require("@nomicfoundation/hardhat-network-helpers");
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect, use} = require("chai");
-const USDCAbi = require("../data/abi/USDCAbi.json");
+const USDCAbi = require("../data/abi/USCDAbia.json");
 
 use(require("chai-as-promised"));
 
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const PRICE_IN_DOLLARS = 5_000; 
+const PRICE = 5_000; 
 
 describe("PaymentAndRefund", function () {
     // Use loadFixture to run this setup once, snapshot that state,
@@ -21,10 +21,9 @@ describe("PaymentAndRefund", function () {
         const instance = await Contract.deploy(USDC_ADDRESS);
 
         await instance.deployed();
-        await instance.connect(admin).setPrice(PRICE_IN_DOLLARS);
+        await instance.connect(admin).setPrice(PRICE);
 
-        const USDCInstance = ethers.getContractAt(USDCAbi, USDC_ADDRESS);
-        //const USDCInstance = new ethers.Contract(USDC_ADDRESS, USDCAbi, ethers.provider);
+        const USDCInstance = new ethers.Contract(USDC_ADDRESS, USDCAbi, USDCSigner);
 
         return { instance, USDCInstance, admin, user1, user2 };
     }
@@ -32,30 +31,16 @@ describe("PaymentAndRefund", function () {
     describe("Deposit", function () {
         it("User can deposit USDC", async function () {
             const { instance, USDCInstance, admin, user1 } = await loadFixture(deployFixture);
-/*
-            const approval = await USDCInstance.connect(user1)
-                .approve(instance.address, PRICE_IN_DOLLARS * 10 ** 6);
+            const approval = await USDCInstance.connect(user1).approve(instance.address, PRICE);
 
-            await instance.connect(user1).payUpfront(PRICE_IN_DOLLARS);
-*/
-                    
+            console.log(user1.address, instance.address);
+            //const confirmApproval = await USDCInstance.allowance(user1.address, instance.address);
+            //console.log(`confirmed?: ${JSON.stringify(confirmApproval)}`);
+            //await instance.connect(user1).payUpfront(PRICE);
 
-            //const contractBalance = await instance.getContractUSDCBalance();
-            /*
-             * Produces the following error:
-             *     Error: Transaction reverted: function returned an unexpected amount of data
-             */
-
-            const contractBalance = await USDCInstance.balanceOf(instance.address);
-            /*
-             * Produces the following error:
-             *      TypeError: USDCInstance.balanceOf is not a function
-
-             */
-            console.log(`contract balance : ${contractBalance}`);
-
-            //expect(await instance.depositedUSDC()).to.equal(PRICE_IN_DOLLARS);
-            //expect(contractBalance).to.equal(PRICE_IN_DOLLARS);
+            
+            //expect(instance.depositedUSDC).to.equal(PRICE);
+            //expect(await instance.contractBalance()).to.equal(PRICE);
         });
 
         xit("User cannot make multiple deposits", async function () {
