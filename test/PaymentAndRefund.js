@@ -8,6 +8,8 @@ const { expect, use} = require("chai");
 use(require("chai-as-promised"));
 
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const PRICE = 5_000; 
+
 describe("PaymentAndRefund", function () {
     // Use loadFixture to run this setup once, snapshot that state,
     // and reset Hardhat Network to that snapshot in every test.
@@ -18,6 +20,7 @@ describe("PaymentAndRefund", function () {
         const instance = await Contract.deploy(USDC_ADDRESS);
 
         await instance.deployed();
+        await instance.connect(admin).setPrice(PRICE);
 
         return { instance, admin, user1, user2 };
     }
@@ -25,8 +28,12 @@ describe("PaymentAndRefund", function () {
     describe("Deposit", function () {
         it("User can deposit USDC", async function () {
             const { instance, admin, user1 } = await loadFixture(deployFixture);
-        
-            expect(true).to.equal(false);
+            // await [ user makes allowance for contract to withdraw PRICE]
+            await instance.payUpFront();
+
+            
+            expect(instance.depositedUSDC).to.equal(PRICE);
+            expect(await instance.contractBalance()).to.equal(PRICE);
         });
 
         it("User cannot make multiple deposits", async function () {
