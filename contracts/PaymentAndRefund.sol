@@ -46,6 +46,7 @@ contract PaymentAndRefund {
     * - Check logic: currently rounding down (mod operator) when calculating returns
     * - Resolve mainnet fork USCD testing issue
     * - Start time (re: discussed limits) array of possible start dates?
+    * - Clarify intended seller withdraw flow and to admin address ok?
     */
 
     struct Deposit {
@@ -146,7 +147,7 @@ contract PaymentAndRefund {
     }
 
     function getEligibleRefundAmount(address _buyer) public view returns(uint256) {
-    //Very similar?
+        return uint256(_getEligibleWithdrawAmount(_buyer));
     }
 
     function _getEligibleWithdrawAmount(address _account) internal view returns(uint64) {
