@@ -1,63 +1,79 @@
 const { time, loadFixture } = require(
     "@nomicfoundation/hardhat-network-helpers");
-
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect, use} = require("chai");
 const { ethers } = require("hardhat");
 
-const USDCAbi = require("../data/abi/USDCAbi.json");
-
 use(require("chai-as-promised"));
 
+const ERC20_ABI = require('../data/abi/ERC20.json');
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const USDC_WHALE = '0x7713974908be4bed47172370115e8b1219f4a5f0';
 const PRICE_IN_DOLLARS = 5_000; 
+const PRICE_SIX_DECIMALS = 5_000_000_000;
+const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * 10**6;
+const JAN_FIRST = 1640998860; // Time stamp for 1/1/22 01:01:00 AM
 
 describe("PaymentAndRefund", function () {
-    // Use loadFixture to run this setup once, snapshot that state,
-    // and reset Hardhat Network to that snapshot in every test.
     async function deployFixture() {
-        const [admin, USDCSigner, user1, user2] = await ethers.getSigners();
+        const [admin, user1, user2] = await ethers.getSigners();
 
-        const Contract = await ethers.getContractFactory("PaymentAndRefund");
-        const instance = await Contract.deploy(USDC_ADDRESS);
+        const PaymentContract = await ethers.getContractFactory("PaymentAndRefund");
+        const paymentContract = await PaymentContract.deploy(USDC_ADDRESS);
+        await paymentContract.deployed();
+        const usdcContract = new ethers.
+            Contract(USDC_ADDRESS, ERC20_ABI, ethers.provider);
 
-        await instance.deployed();
-        await instance.connect(admin).setPrice(PRICE_IN_DOLLARS);
-        
-        const provider = new ethers.providers.getDefaultProvider('http://127.0.0.1:8545/');
+        // Set initial state
+        const whale = await ethers.getImpersonatedSigner(USDC_WHALE);
+        await paymentContract.connect(admin).setPrice(PRICE_IN_DOLLARS);
+        await usdcContract.connect(whale).transfer(user1.address, SPENDING_MONEY);
+        await usdcContract.connect(whale).transfer(user2.address, SPENDING_MONEY);
 
-        const USDCInstance = new ethers.Contract(USDC_ADDRESS, USDCAbi, provider);
-
-        return { instance, USDCInstance, admin, user1, user2 };
+        return { paymentContract, usdcContract, admin, user1, user2 };
     }
 
     describe("Deposit", function () {
         it("User can deposit USDC", async function () {
-            const { instance, USDCInstance, user1 } = await loadFixture(deployFixture);
-/*
-            const approval = await USDCInstance.connect(user1)
-                .approve(instance.address, PRICE_IN_DOLLARS * 10 ** 6);
+            const { paymentContract, usdcContract, user1 } = await loadFixture(
+                deployFixture);
 
-            await instance.connect(user1).payUpfront(PRICE_IN_DOLLARS);
-*/
-             
-            //const contractBalance = await USDCInstance.balanceOf(instance.address);
+            const approval = await usdcContract.connect(user1)
+                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
 
-            //expect(await instance.depositedUSDC()).to.equal(PRICE_IN_DOLLARS);
-            //expect(contractBalance).to.equal(PRICE_IN_DOLLARS);
+            await paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+            const contractBalance = await usdcContract
+                .balanceOf(paymentContract.address);
+
+            expect(contractBalance).to.equal(PRICE_SIX_DECIMALS);
         });
 
-        xit("User cannot make multiple deposits", async function () {
-            const { instance, admin } = await loadFixture(deployFixture);
+        it("User cannot make multiple deposits", async function () {
+            const { paymentContract, usdcContract, user1 } = await loadFixture(
+                deployFixture);
 
-            expect(true).to.equal(false);
+            const approval = await usdcContract.connect(user1)
+                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
+
+            const payment1 = await paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+
+             await expect(paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST)).to.be
+                    .rejectedWith('User cannot deposit twice.');
         });
 
 
-        xit("Deposits will increment global var ` `", async function () {
-            const { instance, admin } = await loadFixture(deployFixture);
+        it("Deposits will increment global var `depositedUSDC`", async function () {
+            const { paymentContract, usdcContract, user1 } = await loadFixture(
+                deployFixture);
+            
+            const approval = await usdcContract.connect(user1)
+                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
+            const payment1 = await paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+            const valueFromContract = await paymentContract.depositedUSDC();
 
-            expect(true).to.equal(false);
+            expect(valueFromContract).to.equal(5_000);
         });
     });
 
