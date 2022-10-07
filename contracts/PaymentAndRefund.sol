@@ -45,7 +45,7 @@ contract PaymentAndRefund {
     * 
     * - Check logic: currently rounding down (mod operator) when calculating returns
     * - Resolve mainnet fork USCD testing issue
-    *
+    * - Start time (re: discussed limits) array of possible start dates?
     */
 
     struct Deposit {
@@ -161,8 +161,16 @@ contract PaymentAndRefund {
     }
 
     function sellerGetEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256[] memory) {
+        uint256 len = _buyers.length
+        uint256[] refunds;
 
-        
+        for (uint256 i = 0; i < len; ) {
+            refunds.push(uint256(_getEligibleWithdrawAmount(_buyers[i]));
+            unchecked {
+                ++i;
+        }
+
+        return refunds;
     }
 
     function _sellerWithdraw(address _deposit) internal {
