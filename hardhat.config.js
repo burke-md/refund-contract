@@ -13,7 +13,7 @@ module.exports = {
             forking: {
                 url: alchemyStr,
                 blockNumber: 15685704
-            }
-        }
-    }
+            },
+        },
+    },
 };
