@@ -164,7 +164,9 @@ contract PaymentAndRefund {
     function sellerGetEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256[] memory) {
         uint256 len = _buyers.length
         uint256[] refunds;
-
+        
+        // This math works for user withdrawing -- confirm intentions here
+        // Would invert logic for amount that can be safely withdrawn by admin
         for (uint256 i = 0; i < len; ) {
             refunds.push(uint256(_getEligibleWithdrawAmount(_buyers[i]));
             unchecked {
