@@ -1,14 +1,17 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
-const alchemyKey = process.env.ALCHEMY_API_KEY;
+const alchemyStr = process.env.ALCHEMY_STRING;
 /** @type import('hardhat/config').HardhatUserConfig */
+
 module.exports = {
     solidity: "0.8.17",
-    netoworks: {
+    defaultNetwork: "hardhat",
+    networks: {
         hardhat: {
+            chainId: 31337,
             forking: {
-                url: `https://eth-mainnet.alchemyapi.io/v2/${alchemyKey}`,
+                url: alchemyStr,
                 blockNumber: 15685704
             }
         }

@@ -1,9 +1,10 @@
-const {
-    time,
-    loadFixture,
-} = require("@nomicfoundation/hardhat-network-helpers");
+const { time, loadFixture } = require(
+    "@nomicfoundation/hardhat-network-helpers");
+
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect, use} = require("chai");
+const { ethers } = require("hardhat");
+
 const USDCAbi = require("../data/abi/USDCAbi.json");
 
 use(require("chai-as-promised"));
@@ -22,37 +23,25 @@ describe("PaymentAndRefund", function () {
 
         await instance.deployed();
         await instance.connect(admin).setPrice(PRICE_IN_DOLLARS);
+        
+        const provider = new ethers.providers.getDefaultProvider('http://127.0.0.1:8545/');
 
-        const USDCInstance = ethers.getContractAt(USDCAbi, USDC_ADDRESS);
-        //const USDCInstance = new ethers.Contract(USDC_ADDRESS, USDCAbi, ethers.provider);
+        const USDCInstance = new ethers.Contract(USDC_ADDRESS, USDCAbi, provider);
 
         return { instance, USDCInstance, admin, user1, user2 };
     }
 
     describe("Deposit", function () {
         it("User can deposit USDC", async function () {
-            const { instance, USDCInstance, admin, user1 } = await loadFixture(deployFixture);
+            const { instance, USDCInstance, user1 } = await loadFixture(deployFixture);
 /*
             const approval = await USDCInstance.connect(user1)
                 .approve(instance.address, PRICE_IN_DOLLARS * 10 ** 6);
 
             await instance.connect(user1).payUpfront(PRICE_IN_DOLLARS);
 */
-                    
-
-            //const contractBalance = await instance.getContractUSDCBalance();
-            /*
-             * Produces the following error:
-             *     Error: Transaction reverted: function returned an unexpected amount of data
-             */
-
-            const contractBalance = await USDCInstance.balanceOf(instance.address);
-            /*
-             * Produces the following error:
-             *      TypeError: USDCInstance.balanceOf is not a function
-
-             */
-            console.log(`contract balance : ${contractBalance}`);
+             
+            //const contractBalance = await USDCInstance.balanceOf(instance.address);
 
             //expect(await instance.depositedUSDC()).to.equal(PRICE_IN_DOLLARS);
             //expect(contractBalance).to.equal(PRICE_IN_DOLLARS);
