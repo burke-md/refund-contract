@@ -29,7 +29,7 @@ contract PaymentAndRefund {
     uint256 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
-    uint64 constant ONE_WEEK = 3600 * 24 * 7;
+    uint64 constant ONE_WEEK = 3600 * 24 * 7 * 1000;
 
     struct Deposit {
         uint64 originalDepositInDollars;  // price may change
@@ -138,13 +138,27 @@ contract PaymentAndRefund {
     function getEligibleRefundAmount(address _buyer) public view returns(uint64) {
         uint64 startTime = deposits[_buyer].startTime;
         uint64 currentTime = uint64(block.timestamp);
+        uint64 paidDollars = deposits[_buyer].originalDepositInDollars;
 
-        //uint64 weeksComplete = (startTime - currentTime) / ONE_WEEK;
-        //uint64 multiplier = deposits[_buyer].refundSchedule[weeksComplete] / 100; 
-        //uint64 refundInDollars = deposits[_buyer].originalDepositInDollars * multiplier;
+        uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
         
-        //return refundInDollars;
-       return deposits[_buyer].originalDepositInDollars;
+        uint64 multiplier;
+        
+        if (weeksComplete > 15) {
+            multiplier == 0;
+        }
+        
+        // handle weeks 1-15 mapping to zero indexed array
+        if (weeksComplete > 0 && weeksComplete < 16) {
+            multiplier = deposits[_buyer].refundSchedule[weeksComplete -1];
+        }
+
+        if (weeksComplete == 0) {
+            multiplier = deposits[_buyer].refundSchedule[weeksComplete];
+        }
+
+
+       return (paidDollars * multiplier) / 100;
     }
 
     function _getEligibleWithdrawAmount(address _account) internal view returns(uint64) {
