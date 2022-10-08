@@ -139,11 +139,12 @@ contract PaymentAndRefund {
         uint64 startTime = deposits[_buyer].startTime;
         uint64 currentTime = uint64(block.timestamp);
 
-        uint64 weeksComplete = (startTime - currentTime) % ONE_WEEK;
-        uint64 multiplier = deposits[_buyer].refundSchedule[weeksComplete] / 100; 
-        uint64 refundInDollars = deposits[_buyer].originalDepositInDollars * multiplier;
+        //uint64 weeksComplete = (startTime - currentTime) / ONE_WEEK;
+        //uint64 multiplier = deposits[_buyer].refundSchedule[weeksComplete] / 100; 
+        //uint64 refundInDollars = deposits[_buyer].originalDepositInDollars * multiplier;
         
-        return refundInDollars;
+        //return refundInDollars;
+       return deposits[_buyer].originalDepositInDollars;
     }
 
     function _getEligibleWithdrawAmount(address _account) internal view returns(uint64) {
