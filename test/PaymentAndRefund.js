@@ -28,6 +28,7 @@ const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 
 const JAN_FIRST = 1672534860000;
 const JAN_TENTH = 1673312460000;
 const JAN_TWENTY_FOURTH = 1674522060000;
+const FEB_FIRST = 1675213260000;
 const FEB_SEVENTH = 1675731660000;
 const APRIL_EIGHTEENTH = 1681779660000;
 const JAN_2050 = 2524611660000;
@@ -377,7 +378,6 @@ describe("PaymentAndRefund", function () {
                         deployFixture);
                     
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
                     const approval = await usdcContract.connect(user1)
                         .approve(paymentContract.address, PRICE_SIX_DECIMALS);
@@ -441,9 +441,74 @@ describe("PaymentAndRefund", function () {
                 expect(await paymentContract.depositedUSDC()).to.equal(0);
             });
 
-            xit("===test===", 
+            it("Admin can withdraw from multiple students in multiple cohorts w/ one request", 
                 async function () {
-                    expect(true).to.equal(false);
+                /* THIS TEST WILL COVER THE FOLLOWING SITUATION:
+                *  
+                *  User1 & user2 will approve USDC allowance
+                *  User1 will pay for course begining JAN_FIRST
+                *  User2 will pay for courses begining FEB_FIRST
+                *  Fast forward to JAN_TWENTY_FOURTH 
+                *       User 1 = week3
+                *       User 2 = week0 (has not begun yet)
+                *  Admin will withdraw from both accounts 
+                *         Make assertion that correct amount is with drawl
+                *  Fast forward to APRIL_EIGHTEENTH
+                *  Admin will withdraw from both accounts 
+                *         Make assertion that contract holds appropriate amount
+                *         1st complete(0 remaining) 2nd week 11 (25%)
+                */
+                
+                const { paymentContract, usdcContract, admin, user1, user2 } = await loadFixture(
+                    deployFixture);
+
+                await time.increaseTo(JAN_FIRST); 
+                const approval = await usdcContract.connect(user1)
+                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                const approval2 = await usdcContract.connect(user2)
+                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
+                const payment1 = await paymentContract.connect(user1)
+                    .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                const payment2 = await paymentContract.connect(user2)
+                    .payUpfront(PRICE_IN_DOLLARS, FEB_FIRST);
+
+
+                await time.increaseTo(JAN_TWENTY_FOURTH); 
+
+                expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
+                    2 * PRICE_SIX_DECIMALS);
+
+                await paymentContract.connect(admin).sellerWithdraw([
+                    user1.address, user2.address
+                ]);
+
+                expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
+                    PRICE_SIX_DECIMALS + (PRICE_SIX_DECIMALS * 0.75));
+// ** math is good up to here
+                await time.increaseTo(APRIL_EIGHTEENTH); 
+                const z = await paymentContract.sellerGetEligibleWithdrawAmount([
+                    user1.address, user2.address
+                ]);
+                
+                console.log(`possible to with draw ap 18: ${z}`);
+
+                const x = await paymentContract.sellerGetEligibleWithdrawAmount([
+                    user1.address, user2.address
+                ]);
+                
+                console.log(`possible to with draw before: ${x}`);
+                await paymentContract.connect(admin).sellerWithdraw([
+                    user1.address, user2.address
+                ]);
+
+                const y = await paymentContract.sellerGetEligibleWithdrawAmount([
+                    user1.address, user2.address
+                ]);
+                
+                console.log(`possible to with draw after: ${y}`);
+                //expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
+                    //PRICE_SIX_DECIMALS * 0.25);
             });
         });
         
@@ -490,11 +555,6 @@ describe("PaymentAndRefund", function () {
                
                 const depositedUSDCAfterWithdraw = await paymentContract.depositedUSDC();
                 expect(depositedUSDCBeforeWithdraw).to.equal(depositedUSDCAfterWithdraw + PRICE_IN_DOLLARS);
-            });
-
-            xit("===test===", 
-                async function () {
-                    expect(true).to.equal(false);
             });
         });
     });

@@ -32,9 +32,8 @@ contract PaymentAndRefund {
     uint64 constant ONE_WEEK = 3600 * 24 * 7 * 1000;
 
     struct Deposit {
-        uint64 originalDepositInDollars;  // price may change
-        // balanceLeftInDollars to be calculated at time of withdraw?
-        //uint64 balanceLeftInDollars;      // the seller can withdraw up to the amount NOT eligible for refund
+        uint64 originalDepositInDollars;  
+        uint64 balanceLeftInDollars;      // Total to ensure seller does not double dip
         uint64 depositTime;
         uint64 startTime;
         uint8[] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
@@ -48,9 +47,9 @@ contract PaymentAndRefund {
     /******
     * TODO:
     * 
-    * - Resolve mainnet fork USCD testing issue
     * - Simplfify admin with draw flow
     * - Track each students book keep at time of withdraw
+    * - Custom log for start dates
     */
 
 
@@ -73,6 +72,7 @@ contract PaymentAndRefund {
         Deposit memory deposit;
         deposit = Deposit({
             originalDepositInDollars: currentPriceInDollars,
+            balanceLeftInDollars: currentPriceInDollars,
             depositTime: uint64(block.timestamp),
             startTime: _startTime,
             refundSchedule: refundSchedule
@@ -151,37 +151,56 @@ contract PaymentAndRefund {
         return (paidDollars * multiplier) / 100;
     }
 
-    function _getEligibleWithdrawAmount(address _buyer) internal view returns(uint64) {
-        uint64 buyerPaid = deposits[_buyer].originalDepositInDollars;
-        uint64 possibleRefund = getEligibleRefundAmount(_buyer);
-        uint64 safeWithdrawDollars = buyerPaid - possibleRefund;
-
-        return safeWithdrawDollars;
-    }
-
-    function sellerGetEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256[] memory) {
+/*
+    function getEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256) {
         uint256 len = _buyers.length;
-        uint256[] memory refunds;
+        uint256 refund = 0;
         
         for (uint256 i = 0; i < len; ) {
-            //refunds.push(uint256(_getEligibleWithdrawAmount(_buyers[i]));
+            refund += _getEligibleWithdrawAmount(_buyers[i]);
             unchecked {
                 ++i;
             }
         }
-        return refunds;
+        return refund;
     }
-
-    function _sellerWithdraw(address _deposit) internal {
-        uint64 amountDollars = _getEligibleWithdrawAmount(_deposit);
+*/
+    function _sellerWithdraw(address _buyer) internal {
+        uint64 amountDollars = _getEligibleWithdrawAmount(_buyer); 
 
         depositedUSDC -= amountDollars;
+        deposits[_buyer].balanceLeftInDollars -= amountDollars;
+
         USDC.transfer(admin, amountDollars *10 **6);
+    }
+
+    function _getEligibleWithdrawAmount(address _buyer) internal view returns(uint64) {
+
+        /* LOGIC:
+        * - Get amount user can withdraw based on time frame 
+        * - Get amount in "account" see `balanceLeftInDollars`
+        * - Check balance is greater and return 
+        */
+        uint64 buyerPaid deposits[_buyer].originalDepositInDollars ;
+        uint64 possibleUserWithdraw = buyerPaid - getEligibleRefundAmount(_buyer);
+        uint64 accountBalance = deposits[_buyer].balanceLeftInDollars;
+
+        if (possibleUserWithdraw > accountBalance) {
+            return 0;
+        }
+
+        return possibleUserWithdraw;
     }
 
     function _getWeeksComplete(address _account) internal view returns(uint64) {
         uint64 startTime = deposits[_account].startTime;
         uint64 currentTime = uint64(block.timestamp);
+        
+        // Refund before course starts
+        if (currentTime < startTime) {
+            return 0;
+        }
+
         uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
         
         return weeksComplete;
