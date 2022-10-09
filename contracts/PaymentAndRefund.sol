@@ -33,7 +33,7 @@ contract PaymentAndRefund {
 
     struct Deposit {
         uint64 originalDepositInDollars;  
-        uint64 balanceLeftInDollars;      // Total to ensure seller does not double dip
+        uint64 balanceInDollars;      // Total to ensure each buyers refund is valid at all times
         uint64 depositTime;
         uint64 startTime;
         uint8[] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
@@ -72,7 +72,7 @@ contract PaymentAndRefund {
         Deposit memory deposit;
         deposit = Deposit({
             originalDepositInDollars: currentPriceInDollars,
-            balanceLeftInDollars: currentPriceInDollars,
+            balanceInDollars: currentPriceInDollars,
             depositTime: uint64(block.timestamp),
             startTime: _startTime,
             refundSchedule: refundSchedule
@@ -82,7 +82,7 @@ contract PaymentAndRefund {
     }
 
     function buyerClaimRefund() external {
-        uint64 refundInDollars = getEligibleRefundAmount(msg.sender);
+        uint256 refundInDollars = calculateRefundDollars(msg.sender);
 
         depositedUSDC -= refundInDollars; 
         delete deposits[msg.sender];
@@ -114,25 +114,49 @@ contract PaymentAndRefund {
     }
 
     // kick student from the program. Refund them according to what they are owed
-    function sellerTerminateAgreement(address _student) external onlyAdmin {
-        uint64 refundInDollars = getEligibleRefundAmount(_student);
+    function sellerTerminateAgreement(address _buyer) external onlyAdmin {
+        uint256 refundInDollars = calculateRefundDollars(_buyer);
 
         depositedUSDC -= refundInDollars;
-        delete deposits[_student];
+        delete deposits[_buyer];
 
-        USDC.transfer(_student, refundInDollars * 10 ** 6);
+        USDC.transfer(_buyer, refundInDollars * 10 ** 6);
     }
 
-    function sellerWithdraw(address[] calldata _deposits) external onlyAdmin {
-        for (uint256 i = 0; i < _deposits.length; ) {
-            _sellerWithdraw(_deposits[i]);
+    function sellerWithdraw(address[] calldata _buyers) external onlyAdmin {
+        uint256 dollarsToWithdraw = 0;
+        uint256 len = _buyers.length;
+
+        for (uint256 i = 0; i < _buyers.length; ) {
+            uint256 safeValue = calculateSafeWithdrawDollars(_buyers[i]);
+            dollarsToWithdraw += safeValue;
+            deposits[_buyers[i]].balanceInDollars -= uint64(safeValue);
             unchecked {
                 ++i;
             }
         }
+        depositedUSDC -= dollarsToWithdraw;
+        USDC.transfer(admin, dollarsToWithdraw *10 **6);
     }
 //------------------------------------UTILS------------------------------------\\
+    function calculateRefundDollars(address _buyer) public view returns(uint256) {
+        uint256 paidDollars = deposits[_buyer].originalDepositInDollars;
+        uint256 scheduleLength = deposits[_buyer].refundSchedule.length;
 
+        uint256 weeksComplete = _getWeeksComplete(_buyer);
+        uint256 multiplier;
+       
+        if (weeksComplete < scheduleLength) {
+            multiplier = deposits[_buyer].refundSchedule[weeksComplete];
+        }
+
+        if (weeksComplete > scheduleLength) {
+            multiplier == 0;
+        }
+
+        return (paidDollars * multiplier) / 100;
+    }
+/*
     function getEligibleRefundAmount(address _buyer) public view returns(uint64) {
         uint64 paidDollars = deposits[_buyer].originalDepositInDollars;
         uint64 scheduleLength = uint64(deposits[_buyer].refundSchedule.length);
@@ -149,9 +173,26 @@ contract PaymentAndRefund {
         }
 
         return (paidDollars * multiplier) / 100;
-    }
+    }*/
 
-/*
+    function calculateSafeWithdrawDollars(address _buyer) public view returns(uint256) {
+        /* LOGIC:
+        *  - Check required refund req's
+        *  - Refund value is valid for >= 7 days, this function could be called multiple
+        *    times throughout that time. 
+        */
+
+        uint256 accountRequirments = calculateRefundDollars(_buyer);
+        uint256 accountBalance = deposits[_buyer].balanceInDollars;
+
+        if (accountRequirments > accountBalance) {
+            // Prevent erros from nagitive values
+            return 0;
+        }
+        
+        return accountBalance - accountRequirments;
+    }
+   /*
     function getEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256) {
         uint256 len = _buyers.length;
         uint256 refund = 0;
@@ -164,7 +205,6 @@ contract PaymentAndRefund {
         }
         return refund;
     }
-*/
     function _sellerWithdraw(address _buyer) internal {
         uint64 amountDollars = _getEligibleWithdrawAmount(_buyer); 
 
@@ -176,11 +216,6 @@ contract PaymentAndRefund {
 
     function _getEligibleWithdrawAmount(address _buyer) internal view returns(uint64) {
 
-        /* LOGIC:
-        * - Get amount user can withdraw based on time frame 
-        * - Get amount in "account" see `balanceLeftInDollars`
-        * - Check balance is greater and return 
-        */
         uint64 buyerPaid deposits[_buyer].originalDepositInDollars ;
         uint64 possibleUserWithdraw = buyerPaid - getEligibleRefundAmount(_buyer);
         uint64 accountBalance = deposits[_buyer].balanceLeftInDollars;
@@ -191,17 +226,17 @@ contract PaymentAndRefund {
 
         return possibleUserWithdraw;
     }
-
-    function _getWeeksComplete(address _account) internal view returns(uint64) {
-        uint64 startTime = deposits[_account].startTime;
-        uint64 currentTime = uint64(block.timestamp);
+*/
+    function _getWeeksComplete(address _account) internal view returns(uint256) {
+        uint256 startTime = deposits[_account].startTime;
+        uint256 currentTime = block.timestamp;
         
         // Refund before course starts
         if (currentTime < startTime) {
             return 0;
         }
 
-        uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
+        uint256 weeksComplete = (currentTime - startTime) / ONE_WEEK;
         
         return weeksComplete;
     }
