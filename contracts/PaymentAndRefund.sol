@@ -134,12 +134,10 @@ contract PaymentAndRefund {
 //------------------------------------UTILS------------------------------------\\
 
     function getEligibleRefundAmount(address _buyer) public view returns(uint64) {
-        uint64 startTime = deposits[_buyer].startTime;
-        uint64 currentTime = uint64(block.timestamp);
         uint64 paidDollars = deposits[_buyer].originalDepositInDollars;
         uint64 scheduleLength = uint64(deposits[_buyer].refundSchedule.length);
 
-        uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
+        uint64 weeksComplete = _getWeeksComplete(_buyer);
         uint64 multiplier;
        
         if (weeksComplete < scheduleLength) {
@@ -153,7 +151,12 @@ contract PaymentAndRefund {
         return (paidDollars * multiplier) / 100;
     }
 
-    function _getEligibleWithdrawAmount(address _account) internal view returns(uint64) {
+    function _getEligibleWithdrawAmount(address _buyer) internal view returns(uint64) {
+        uint64 buyerPaid = deposits[_buyer].originalDepositInDollars;
+        uint64 possibleRefund = getEligibleRefundAmount(_buyer);
+        uint64 safeWithdrawDollars = buyerPaid - possibleRefund;
+
+        return safeWithdrawDollars;
     }
 
     function sellerGetEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256[] memory) {
@@ -170,6 +173,17 @@ contract PaymentAndRefund {
     }
 
     function _sellerWithdraw(address _deposit) internal {
+        uint64 amountDollars = _getEligibleWithdrawAmount(_deposit);
 
+        depositedUSDC -= amountDollars;
+        USDC.transfer(admin, amountDollars *10 **6);
+    }
+
+    function _getWeeksComplete(address _account) internal view returns(uint64) {
+        uint64 startTime = deposits[_account].startTime;
+        uint64 currentTime = uint64(block.timestamp);
+        uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
+        
+        return weeksComplete;
     }
 }

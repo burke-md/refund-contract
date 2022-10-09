@@ -27,6 +27,7 @@ const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 
 
 const JAN_FIRST = 1672534860000;
 const JAN_TENTH = 1673312460000;
+const JAN_TWENTY_FOURTH = 1674522060000;
 const FEB_SEVENTH = 1675731660000;
 const APRIL_EIGHTEENTH = 1681779660000;
 const JAN_2050 = 2524611660000;
@@ -405,13 +406,42 @@ describe("PaymentAndRefund", function () {
             });
         });
 
-        xdescribe("Aministrator withdraw throughout program", function () {
-            it("===test===", 
-                async function () {
-                    expect(true).to.equal(false);
+        describe("Aministrator withdraw throughout program", function () {
+            it("Admin can withdraw payment without disrupting refund policy", async function () {
+                /* THIS TEST WILL COVER THE FOLLOWING SITUATION:
+                *  
+                *  User will approve USDC allowance
+                *  User will pay for course
+                *  Fast forward time 23 days ( will round down to 3 weeks @ 75% refund )
+                *  Admin will withdraw available funds ( 5k X 0.25 )
+                *  User will leave program and withdraw refund ( 5k X 0.75 )
+                */
+                
+                const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                    deployFixture);
+                
+                await time.increaseTo(JAN_FIRST); 
+                const approval = await usdcContract.connect(user1)
+                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                const payment1 = await paymentContract.connect(user1)
+                    .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                await time.increaseTo(JAN_TWENTY_FOURTH); 
+
+                await paymentContract.connect(admin).sellerWithdraw([user1.address]);
+
+                const contractBalance = await usdcContract.balanceOf(paymentContract.address);
+
+                expect(contractBalance).to.equal(PRICE_SIX_DECIMALS * 0.75);
+                
+                await paymentContract.connect(user1).buyerClaimRefund();
+
+                const contractBalanceAtEnd = await usdcContract.balanceOf(paymentContract.address);
+                
+                expect(contractBalanceAtEnd).to.equal(0);
+                expect(await paymentContract.depositedUSDC()).to.equal(0);
             });
 
-            it("===test===", 
+            xit("===test===", 
                 async function () {
                     expect(true).to.equal(false);
             });
