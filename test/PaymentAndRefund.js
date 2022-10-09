@@ -47,6 +47,12 @@ describe("PaymentAndRefund", function () {
         await paymentContract.connect(admin).setPrice(PRICE_IN_DOLLARS);
         await usdcContract.connect(whale).transfer(user1.address, SPENDING_MONEY);
         await usdcContract.connect(whale).transfer(user2.address, SPENDING_MONEY);
+        
+        // Approve both users for purchase of course once
+        const approval1 = await usdcContract.connect(user1)
+            .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+        const approval2 = await usdcContract.connect(user2)
+            .approve(paymentContract.address, PRICE_SIX_DECIMALS);
 
         return { paymentContract, usdcContract, admin, user1, user2 };
     }
@@ -55,9 +61,6 @@ describe("PaymentAndRefund", function () {
         it("User can deposit USDC", async function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
-
-            const approval = await usdcContract.connect(user1)
-                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
 
             await paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             const contractBalance = await usdcContract
@@ -68,9 +71,6 @@ describe("PaymentAndRefund", function () {
         it("User cannot make multiple deposits", async function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
-
-            const approval = await usdcContract.connect(user1)
-                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
 
             const payment1 = await paymentContract.connect(user1)
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
@@ -84,9 +84,7 @@ describe("PaymentAndRefund", function () {
         it("Deposits will increment global var `depositedUSDC`", async function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
-            
-            const approval = await usdcContract.connect(user1)
-                .approve(paymentContract.address, PRICE_IN_DOLLARS * 10 ** 6);
+
             const payment1 = await paymentContract.connect(user1)
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             const valueFromContract = await paymentContract.depositedUSDC();
@@ -97,15 +95,12 @@ describe("PaymentAndRefund", function () {
 
     describe("Withdraw", function () {
         describe("Original refundSchedule", function () {
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK0", 
+            it("User can withdraw according the `refundSchedule` WEEK0", 
                 async function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     // No increase of time. Immidiate withdraw
@@ -124,15 +119,13 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK1", 
+            it("User can withdraw according the `refundSchedule` WEEK1", 
                 async function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
                     // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(JAN_TENTH); 
@@ -151,15 +144,14 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK5", 
+            it("User can withdraw according the `refundSchedule` WEEK5", 
                 async function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
                     // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -178,15 +170,14 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK15", 
+            it("User can withdraw according the `refundSchedule` WEEK15", 
                 async function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
                     // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(APRIL_EIGHTEENTH); 
@@ -212,8 +203,7 @@ describe("PaymentAndRefund", function () {
                     
                     // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -259,15 +249,14 @@ describe("PaymentAndRefund", function () {
                         .to.not.be.rejected;
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK0", 
+            it("User can withdraw according the `refundSchedule` WEEK0", 
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
 
                     // Set up
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER)
@@ -288,7 +277,7 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK1", 
+            it("User can withdraw according the `refundSchedule` WEEK1", 
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
@@ -296,8 +285,7 @@ describe("PaymentAndRefund", function () {
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
 
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(JAN_TENTH); 
@@ -316,7 +304,7 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK5", 
+            it("User can withdraw according the `refundSchedule` WEEK5", 
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
@@ -324,8 +312,7 @@ describe("PaymentAndRefund", function () {
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
 
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -344,7 +331,7 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
             });
 
-            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK15", 
+            it("User can withdraw according the `refundSchedule` WEEK15", 
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
@@ -352,8 +339,7 @@ describe("PaymentAndRefund", function () {
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
                     
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(APRIL_EIGHTEENTH); 
@@ -379,8 +365,7 @@ describe("PaymentAndRefund", function () {
                     
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -421,8 +406,7 @@ describe("PaymentAndRefund", function () {
                     deployFixture);
                 
                 await time.increaseTo(JAN_FIRST); 
-                const approval = await usdcContract.connect(user1)
-                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                 const payment1 = await paymentContract.connect(user1)
                     .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                 await time.increaseTo(JAN_TWENTY_FOURTH); 
@@ -449,10 +433,9 @@ describe("PaymentAndRefund", function () {
                 *  User1 will pay for course begining JAN_FIRST
                 *  User2 will pay for courses begining FEB_FIRST
                 *  Fast forward to JAN_TWENTY_FOURTH 
-                *       User 1 = week3
-                *       User 2 = week0 (has not begun yet)
                 *  Admin will withdraw from both accounts 
                 *         Make assertion that correct amount is with drawl
+                *         User1 (week3 75% should remain) user2 (has not started 100% reamining)
                 *  Fast forward to APRIL_EIGHTEENTH
                 *  Admin will withdraw from both accounts 
                 *         Make assertion that contract holds appropriate amount
@@ -463,10 +446,6 @@ describe("PaymentAndRefund", function () {
                     deployFixture);
 
                 await time.increaseTo(JAN_FIRST); 
-                const approval = await usdcContract.connect(user1)
-                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
-                const approval2 = await usdcContract.connect(user2)
-                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
 
                 const payment1 = await paymentContract.connect(user1)
                     .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
@@ -488,19 +467,18 @@ describe("PaymentAndRefund", function () {
 // ** math is good up to here
                 await time.increaseTo(APRIL_EIGHTEENTH); 
 
-                
                 await paymentContract.connect(admin).sellerWithdraw([
                     user1.address, user2.address
                 ]);
 
                 
-                //expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
-                    //PRICE_SIX_DECIMALS * 0.25);
+                expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
+                    PRICE_SIX_DECIMALS * 0.25);
             });
         });
         
         describe("Other cases:", function () {
-            it("Users cannot withdraw well after completion`refundSchedule` (Pull over push) JANUARY 2050 ", 
+            it("Users cannot withdraw well after completion`refundSchedule` JANUARY 2050 ", 
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
@@ -508,8 +486,7 @@ describe("PaymentAndRefund", function () {
                     await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
                     
                     await time.increaseTo(JAN_FIRST); 
-                    const approval = await usdcContract.connect(user1)
-                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(JAN_2050); 
@@ -532,8 +509,7 @@ describe("PaymentAndRefund", function () {
                     deployFixture);
 
                 await time.increaseTo(JAN_FIRST); 
-                const approval = await usdcContract.connect(user1)
-                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+
                 const payment1 = await paymentContract.connect(user1)
                     .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                 const depositedUSDCBeforeWithdraw = await paymentContract.depositedUSDC();
@@ -547,30 +523,11 @@ describe("PaymentAndRefund", function () {
     });
 
     xdescribe("Business logic", function () {
-        it("Updating `refundSchedule` does not effect existing users", async function () {
-            const { instance, admin } = await loadFixture(deployFixture);
+        it("===TEMPLATE TEST===", async function () {
+        const { instance, admin } = await loadFixture(deployFixture);
 
-            expect(true).to.equal(false);
-        });
-
-        it("Payment is for no greater than 30 days in the future", async function () {
-            const { instance, admin } = await loadFixture(deployFixture);
-
-            expect(true).to.equal(false);
-        });
-
-        it("Payment is for no greater than 21 days in the past", async function () {
-            const { instance, admin } = await loadFixture(deployFixture);
-
-            expect(true).to.equal(false);
+        expect(true).to.equal(false);
         });
     });
 });
 
-/*
-it("===TEMPLATE TEST===", async function () {
-const { instance, admin } = await loadFixture(deployFixture);
-
-expect(true).to.equal(false);
-});
-*/
