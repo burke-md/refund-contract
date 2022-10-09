@@ -115,14 +115,12 @@ contract PaymentAndRefund {
 
     // kick student from the program. Refund them according to what they are owed
     function sellerTerminateAgreement(address _student) external onlyAdmin {
-        /*
-           uint64 refundInDollars = 
+        uint64 refundInDollars = getEligibleRefundAmount(_student);
 
         depositedUSDC -= refundInDollars;
         delete deposits[_student];
 
         USDC.transfer(_student, refundInDollars * 10 ** 6);
-        */
     }
 
     function sellerWithdraw(address[] calldata _deposits) external onlyAdmin {
@@ -139,26 +137,20 @@ contract PaymentAndRefund {
         uint64 startTime = deposits[_buyer].startTime;
         uint64 currentTime = uint64(block.timestamp);
         uint64 paidDollars = deposits[_buyer].originalDepositInDollars;
+        uint64 scheduleLength = uint64(deposits[_buyer].refundSchedule.length);
 
         uint64 weeksComplete = (currentTime - startTime) / ONE_WEEK;
-        
         uint64 multiplier;
-        
-        if (weeksComplete > 15) {
-            multiplier == 0;
-        }
-        
-        // handle weeks 1-15 mapping to zero indexed array
-        if (weeksComplete > 0 && weeksComplete < 16) {
-            multiplier = deposits[_buyer].refundSchedule[weeksComplete -1];
-        }
-
-        if (weeksComplete == 0) {
+       
+        if (weeksComplete < scheduleLength) {
             multiplier = deposits[_buyer].refundSchedule[weeksComplete];
         }
 
+        if (weeksComplete > scheduleLength) {
+            multiplier == 0;
+        }
 
-       return (paidDollars * multiplier) / 100;
+        return (paidDollars * multiplier) / 100;
     }
 
     function _getEligibleWithdrawAmount(address _account) internal view returns(uint64) {

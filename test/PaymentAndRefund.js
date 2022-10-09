@@ -11,6 +11,7 @@ const USDC_WHALE = '0x7713974908be4bed47172370115e8b1219f4a5f0';
 const PRICE_IN_DOLLARS = 5_000; 
 const PRICE_SIX_DECIMALS = 5_000_000_000;
 const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * 10**6;
+const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 0];
 
 /* 
  * FOR TIME RELATED TESTING THE DATE WILL BE MOVED FORWARD TO JAN 1ST 2023 AND WORK 
@@ -28,6 +29,7 @@ const JAN_FIRST = 1672534860000;
 const JAN_TENTH = 1673312460000;
 const FEB_SEVENTH = 1675731660000;
 const APRIL_EIGHTEENTH = 1681779660000;
+const JAN_2050 = 2524611660000;
 
 describe("PaymentAndRefund", function () {
     async function deployFixture() {
@@ -119,6 +121,7 @@ describe("PaymentAndRefund", function () {
                    
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
+
             it("User can withdraw according the `refundSchedule` (Pull over push) WEEK1", 
                 async function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
@@ -200,7 +203,7 @@ describe("PaymentAndRefund", function () {
                     expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
             });
 
-            xit("User can be withdrawn from program by administrator (Push payment) WEEK5",
+            it("User can be withdrawn from program by administrator (Push payment) WEEK5",
                 async function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
@@ -220,7 +223,7 @@ describe("PaymentAndRefund", function () {
                     const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
 
                     await paymentContract.connect(admin).sellerTerminateAgreement(user1.address);
-                    
+
                     const expectedContractBalanceAfterTermination = Number(contractBalanceBeforeRefund) -
                         Number(calculatedRefundSixDecimals);
 
@@ -228,27 +231,238 @@ describe("PaymentAndRefund", function () {
                         .balanceOf(paymentContract.address);
 
                     expect(expectedContractBalanceAfterTermination).to.equal(contractBalanceAfterRefund);
+
+                    const outstandingStudentRefund = await paymentContract
+                        .getEligibleRefundAmount(user1.address);
             });
         });
 
-        xdescribe("Updated refundSchedule", function () {
+        describe("Updated refundSchedule", function () {
+            it("Only the administrator can update the `refundSchedule`", 
+                async function () {
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+
+                    let error = null;
+                    try {
+                        await paymentContract.connect(user1).setRefundSchedule(NEW_REFUND_SCHEDULER);
+                    } catch (e) {
+                        error = e;
+                    }
+                    /* Catch error w/o reversion string:
+                    *  Error: Transaction reverted without a reason string
+                    */
+                    expect(error).to.not.equal(null);
+                    await expect(paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER))
+                        .to.not.be.rejected;
+            });
+
+            it("User can withdraw according the `refundSchedule` (Pull over push) WEEK0", 
+                async function () {
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+
+                    // Set up
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER)
+                    // No increase of time. Immidiate withdraw
+                    // New refund schedule
+
+                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedRefundInDollars = PRICE_IN_DOLLARS * 1.00;
+                    const calculatedRefundInDollars = await paymentContract.getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
+
+                    await paymentContract.connect(user1).buyerClaimRefund();
+                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedBalanceAfterReduns = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
+                   
+                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
+            });
+
             it("User can withdraw according the `refundSchedule` (Pull over push) WEEK1", 
                 async function () {
-                    expect(true).to.equal(false);
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await time.increaseTo(JAN_TENTH); 
+
+                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedRefundInDollars = PRICE_IN_DOLLARS * 0.90;
+                    const calculatedRefundInDollars = await paymentContract.getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
+
+                    await paymentContract.connect(user1).buyerClaimRefund();
+                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedBalanceAfterReduns = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
+                   
+                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterReduns);
             });
 
             it("User can withdraw according the `refundSchedule` (Pull over push) WEEK5", 
                 async function () {
-                    expect(true).to.equal(false);
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await time.increaseTo(FEB_SEVENTH); 
+
+                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedRefundInDollars = PRICE_IN_DOLLARS * 0.50;
+                    const calculatedRefundInDollars = await paymentContract.getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
+
+                    await paymentContract.connect(user1).buyerClaimRefund();
+                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedBalanceAfterRefunds = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
+                   
+                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
             });
 
             it("User can withdraw according the `refundSchedule` (Pull over push) WEEK15", 
                 async function () {
-                   // This is week15 and according the refund schedule there should be 0 refund. 
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+                    
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+                    
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await time.increaseTo(APRIL_EIGHTEENTH); 
+
+                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedRefundInDollars = 0;
+                    const calculatedRefundInDollars = await paymentContract.getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
+
+                    await paymentContract.connect(user1).buyerClaimRefund();
+                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedBalanceAfterRefunds = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
+                   
+                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
+            });
+
+            it("User can be withdrawn from program by administrator (Push payment) WEEK5", 
+                async function () {
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+                    
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+                    // Set up
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await time.increaseTo(FEB_SEVENTH); 
+                    
+                    const contractBalanceBeforeRefund = await usdcContract
+                        .balanceOf(paymentContract.address);
+                    const calculatedRefundInDollars = await paymentContract
+                        .getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    await paymentContract.connect(admin).sellerTerminateAgreement(user1.address);
+
+                    const expectedContractBalanceAfterTermination = Number(contractBalanceBeforeRefund) -
+                        Number(calculatedRefundSixDecimals);
+
+                    const contractBalanceAfterRefund = await usdcContract
+                        .balanceOf(paymentContract.address);
+
+                    expect(expectedContractBalanceAfterTermination).to.equal(contractBalanceAfterRefund);
+
+                    const outstandingStudentRefund = await paymentContract
+                        .getEligibleRefundAmount(user1.address);
+            });
+        });
+
+        xdescribe("Aministrator withdraw throughout program", function () {
+            it("===test===", 
+                async function () {
                     expect(true).to.equal(false);
             });
 
-            it("User can be withdrawn from program by administrator (Push payment)", 
+            it("===test===", 
+                async function () {
+                    expect(true).to.equal(false);
+            });
+        });
+        
+        describe("Other cases:", function () {
+            it("Users cannot withdraw well after completion`refundSchedule` (Pull over push) JANUARY 2050 ", 
+                async function () {
+                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                        deployFixture);
+                    
+                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+                    
+                    await time.increaseTo(JAN_FIRST); 
+                    const approval = await usdcContract.connect(user1)
+                        .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                    const payment1 = await paymentContract.connect(user1)
+                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    await time.increaseTo(JAN_2050); 
+
+                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedRefundInDollars = 0;
+                    const calculatedRefundInDollars = await paymentContract.getEligibleRefundAmount(user1.address);
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
+
+                    await paymentContract.connect(user1).buyerClaimRefund();
+                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                    const expectedBalanceAfterRefunds = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
+                   
+                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
+            });
+            it("Withdrawing should decrement global var `depositedUSDC`", async function () {
+                const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                    deployFixture);
+
+                await time.increaseTo(JAN_FIRST); 
+                const approval = await usdcContract.connect(user1)
+                    .approve(paymentContract.address, PRICE_SIX_DECIMALS);
+                const payment1 = await paymentContract.connect(user1)
+                    .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                const depositedUSDCBeforeWithdraw = await paymentContract.depositedUSDC();
+
+                await paymentContract.connect(user1).buyerClaimRefund();
+               
+                const depositedUSDCAfterWithdraw = await paymentContract.depositedUSDC();
+                expect(depositedUSDCBeforeWithdraw).to.equal(depositedUSDCAfterWithdraw + PRICE_IN_DOLLARS);
+            });
+
+            xit("===test===", 
                 async function () {
                     expect(true).to.equal(false);
             });
