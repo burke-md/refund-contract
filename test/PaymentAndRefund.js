@@ -8,6 +8,8 @@ use(require("chai-as-promised"));
 const ERC20_ABI = require('../data/abi/ERC20.json');
 const USDC_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const USDC_WHALE = '0x7713974908be4bed47172370115e8b1219f4a5f0';
+const DIA_ADDRESS = '0x84cA8bc7997272c7CfB4D0Cd3D55cd942B3c9419';
+const DIA_WHALE = '0x5a52e96bacdabb82fd05763e25335261b270efcb';
 const PRICE_IN_DOLLARS = 5_000; 
 const PRICE_SIX_DECIMALS = 5_000_000_000;
 const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * 10**6;
@@ -32,18 +34,24 @@ const JAN_2050 = 2524611660;
 
 describe("PaymentAndRefund", function () {
     async function deployFixture() {
-        const [admin, user1, user2] = await ethers.getSigners();
+        const [admin, user1, user2, rescuer] = await ethers.getSigners();
 
         const PaymentContract = await ethers.getContractFactory("PaymentAndRefund");
-        const paymentContract = await PaymentContract.deploy(USDC_ADDRESS);
-        await paymentContract.deployed();
-        const usdcContract = new ethers.
-            Contract(USDC_ADDRESS, ERC20_ABI, ethers.provider);
+        const paymentContract = await PaymentContract.deploy(USDC_ADDRESS, rescuer.address);
 
-        const whale = await ethers.getImpersonatedSigner(USDC_WHALE);
+        await paymentContract.deployed();
+
+        const usdcContract = new ethers.Contract(USDC_ADDRESS, ERC20_ABI, ethers.provider);
+        const diaContract = new ethers.Contract(DIA_ADDRESS, ERC20_ABI, ethers.provider);
+
+        const usdcWhale = await ethers.getImpersonatedSigner(USDC_WHALE);
+        const diaWhale = await ethers.getImpersonatedSigner(DIA_WHALE);
+
         await paymentContract.connect(admin).setPrice(PRICE_IN_DOLLARS);
-        await usdcContract.connect(whale).transfer(user1.address, SPENDING_MONEY);
-        await usdcContract.connect(whale).transfer(user2.address, SPENDING_MONEY);
+
+        await usdcContract.connect(usdcWhale).transfer(user1.address, SPENDING_MONEY);
+        await usdcContract.connect(usdcWhale).transfer(user2.address, SPENDING_MONEY);
+        await diaContract.connect(diaWhale).transfer(user1.address, SPENDING_MONEY);
         
         // Approve both users for purchase of course once
         const approval1 = await usdcContract.connect(user1)
@@ -51,7 +59,7 @@ describe("PaymentAndRefund", function () {
         const approval2 = await usdcContract.connect(user2)
             .approve(paymentContract.address, PRICE_SIX_DECIMALS);
 
-        return { paymentContract, usdcContract, admin, user1, user2 };
+        return { paymentContract, usdcContract, diaContract, admin, user1, user2, rescuer };
     }
 
     describe("Deposit", function () {
@@ -456,6 +464,67 @@ describe("PaymentAndRefund", function () {
             });
         });
     });
+
+    describe("Rescuse funds", function () {
+        it("Rescuer can withdraw USDC if funds get stuck in payment contract", async function () {
+            const { paymentContract, usdcContract, user1, rescuer } = await loadFixture(
+                deployFixture);
+
+            await usdcContract.connect(user1).transfer(paymentContract.address, SPENDING_MONEY);
+
+            await paymentContract.connect(rescuer)
+                .rescueERC20Token(USDC_ADDRESS, SPENDING_MONEY);
+
+            const rescuerBalance = await usdcContract.balanceOf(rescuer.address);
+            const contractBalance = await usdcContract.balanceOf(paymentContract.address);
+
+            expect(rescuerBalance).to.equal(SPENDING_MONEY);
+            expect(contractBalance).to.equal(0);
+        });
+
+        it("Rescuer can withdraw alternate ERC20 token from contract", async function () {
+            const { 
+                paymentContract, 
+                usdcContract, 
+                diaContract, 
+                user1, 
+                rescuer } = await loadFixture(deployFixture);
+
+            await diaContract.connect(user1)
+                .transfer(paymentContract.address, SPENDING_MONEY);
+
+            await paymentContract.connect(rescuer)
+                .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY);
+
+            const rescuerBalance = await diaContract.balanceOf(rescuer.address);
+            const contractBalance = await diaContract.balanceOf(paymentContract.address);
+
+            expect(rescuerBalance).to.equal(SPENDING_MONEY);
+            expect(contractBalance).to.equal(0);
+        });
+
+        it("Only the rescuer can use `rescueERC20Token` function", async function () {
+            const { 
+                paymentContract, 
+                usdcContract, 
+                diaContract, 
+                admin,
+                user1, 
+                rescuer } = await loadFixture(deployFixture);
+
+            await diaContract.connect(user1)
+                .transfer(paymentContract.address, SPENDING_MONEY);
+
+            await expect(paymentContract.connect(user1)
+                .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY)).to.be.rejectedWith(
+                    'onlyRescuer');
+
+            await expect(paymentContract.connect(admin)
+                .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY)).to.be.rejectedWith(
+                    'onlyRescuer');
+        });
+    });
+
     describe("Other cases:", function () {
         it("Users cannot withdraw well after completion`refundSchedule` JANUARY 2050 ", 
             async function () {
@@ -483,6 +552,7 @@ describe("PaymentAndRefund", function () {
                
                 expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
         });
+
         it("Withdrawing should decrement global var `depositedUSDC`", async function () {
             const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                 deployFixture);
@@ -519,7 +589,6 @@ describe("PaymentAndRefund", function () {
             await expect(paymentContract.connect(user1)
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST)).to.be.rejectedWith(
                     'User must have made allowance via USDC contract.');
-
         });
 
         it("Only the admin account can update the price", async function () {

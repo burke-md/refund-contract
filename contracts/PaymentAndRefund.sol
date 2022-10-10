@@ -16,6 +16,7 @@ contract PaymentAndRefund {
     uint256 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
+    address public rescuer;
 
     struct Deposit {
         uint64 originalDepositInDollars;  
@@ -25,9 +26,16 @@ contract PaymentAndRefund {
         uint8[] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
     }
 //----------------------------------------------------------------------------\\
-    constructor(address _usdc) {
+    constructor(address _usdc, address _rescuer) {
         admin = msg.sender;
+        rescuer = _rescuer;
         USDC = IERC20(_usdc);
+    }
+
+//-----------------------------ACCESS------------------------------------------\\
+    modifier onlyAdmin {
+        require(msg.sender == admin, "onlyAdmin");
+        _;
     }
 
 //-----------------------------BUYER (student)--------------------------------\\
@@ -67,11 +75,6 @@ contract PaymentAndRefund {
     }
 
 //-----------------------------SELLER (admin)--------------------------------\\
-    modifier onlyAdmin {
-        require(msg.sender == admin, "onlyAdmin");
-        _;
-    }
-
     function setPrice(uint64 _price) external onlyAdmin {
         priceInDollars = _price;
     }
@@ -156,5 +159,10 @@ contract PaymentAndRefund {
         uint256 weeksComplete = (currentTime - startTime) / 1 weeks;
         
         return weeksComplete;
+    }
+
+    function rescueERC20Token(IERC20 _tokenContract, uint256 _amount) external {
+        require(msg.sender == rescuer, "onlyRescuer");
+        _tokenContract.transfer(rescuer, _amount);
     }
 }
