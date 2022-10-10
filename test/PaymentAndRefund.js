@@ -124,7 +124,6 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
@@ -149,9 +148,7 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
-
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -175,9 +172,7 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, user1 } = await loadFixture(
                         deployFixture);
                     
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
-
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(APRIL_EIGHTEENTH); 
@@ -201,9 +196,7 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
                     
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
-
                     const payment1 = await paymentContract.connect(user1)
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(FEB_SEVENTH); 
@@ -235,16 +228,9 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
 
-                    let error = null;
-                    try {
-                        await paymentContract.connect(user1).setRefundSchedule(NEW_REFUND_SCHEDULER);
-                    } catch (e) {
-                        error = e;
-                    }
-                    /* Catch error w/o reversion string:
-                    *  Error: Transaction reverted without a reason string
-                    */
-                    expect(error).to.not.equal(null);
+                    await expect(paymentContract.connect(user1).
+                        setRefundSchedule(NEW_REFUND_SCHEDULER)).to.be.rejectedWith(
+                            'onlyAdmin');
                     await expect(paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER))
                         .to.not.be.rejected;
             });
@@ -254,7 +240,6 @@ describe("PaymentAndRefund", function () {
                     const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                         deployFixture);
 
-                    // Set up
                     await time.increaseTo(JAN_FIRST); 
 
                     const payment1 = await paymentContract.connect(user1)
@@ -452,7 +437,6 @@ describe("PaymentAndRefund", function () {
                 const payment2 = await paymentContract.connect(user2)
                     .payUpfront(PRICE_IN_DOLLARS, FEB_FIRST);
 
-
                 await time.increaseTo(JAN_TWENTY_FOURTH); 
 
                 expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
@@ -464,69 +448,153 @@ describe("PaymentAndRefund", function () {
 
                 expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
                     PRICE_SIX_DECIMALS + (PRICE_SIX_DECIMALS * 0.75));
-// ** math is good up to here
-                await time.increaseTo(APRIL_EIGHTEENTH); 
 
+                await time.increaseTo(APRIL_EIGHTEENTH); 
                 await paymentContract.connect(admin).sellerWithdraw([
                     user1.address, user2.address
                 ]);
 
-                
                 expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(
                     PRICE_SIX_DECIMALS * 0.25);
             });
         });
-        
-        describe("Other cases:", function () {
-            it("Users cannot withdraw well after completion`refundSchedule` JANUARY 2050 ", 
-                async function () {
-                    const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
-                        deployFixture);
-                    
-                    await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
-                    
-                    await time.increaseTo(JAN_FIRST); 
-
-                    const payment1 = await paymentContract.connect(user1)
-                        .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
-                    await time.increaseTo(JAN_2050); 
-
-                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
-                    const expectedRefundInDollars = 0;
-                    const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
-
-                    expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
-
-                    await paymentContract.connect(user1).buyerClaimRefund();
-                    const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
-                    const expectedBalanceAfterRefunds = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
-                   
-                    expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
-            });
-            it("Withdrawing should decrement global var `depositedUSDC`", async function () {
+    });
+    describe("Other cases:", function () {
+        it("Users cannot withdraw well after completion`refundSchedule` JANUARY 2050 ", 
+            async function () {
                 const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                     deployFixture);
-
+                
+                await paymentContract.connect(admin).setRefundSchedule(NEW_REFUND_SCHEDULER);
+                
                 await time.increaseTo(JAN_FIRST); 
 
                 const payment1 = await paymentContract.connect(user1)
                     .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
-                const depositedUSDCBeforeWithdraw = await paymentContract.depositedUSDC();
+                await time.increaseTo(JAN_2050); 
+
+                const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
+                const expectedRefundInDollars = 0;
+                const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
+                const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+
+                expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
                 await paymentContract.connect(user1).buyerClaimRefund();
+                const balanceAfterRefund = await usdcContract.balanceOf(user1.address);
+                const expectedBalanceAfterRefunds = Number(balanceBeforeRefund) + Number(calculatedRefundSixDecimals);
                
-                const depositedUSDCAfterWithdraw = await paymentContract.depositedUSDC();
-                expect(depositedUSDCBeforeWithdraw).to.equal(depositedUSDCAfterWithdraw + PRICE_IN_DOLLARS);
-            });
+                expect(balanceAfterRefund).to.equal(expectedBalanceAfterRefunds);
         });
-    });
+        it("Withdrawing should decrement global var `depositedUSDC`", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
 
-    xdescribe("Business logic", function () {
-        it("===TEMPLATE TEST===", async function () {
-        const { instance, admin } = await loadFixture(deployFixture);
+            await time.increaseTo(JAN_FIRST); 
 
-        expect(true).to.equal(false);
+            const payment1 = await paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+            const depositedUSDCBeforeWithdraw = await paymentContract.depositedUSDC();
+
+            await paymentContract.connect(user1).buyerClaimRefund();
+           
+            const depositedUSDCAfterWithdraw = await paymentContract.depositedUSDC();
+            expect(depositedUSDCBeforeWithdraw).to.equal(depositedUSDCAfterWithdraw + PRICE_IN_DOLLARS);
+        });
+
+        it("User must pass in the correct value for `_price`", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
+            
+            await expect(paymentContract.connect(user1)
+                .payUpfront(10_000, JAN_FIRST)).to.be.rejectedWith(
+                    'User must pay correct price.');
+        });
+
+        it("User must approve the refund contract before making purchase", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
+            
+            // Allowance is made in fixture.
+            await usdcContract.connect(user1).decreaseAllowance(
+                paymentContract.address, PRICE_SIX_DECIMALS);
+
+            await expect(paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST)).to.be.rejectedWith(
+                    'User must have made allowance via USDC contract.');
+
+        });
+
+        it("Only the admin account can update the price", async function () {
+            const { paymentContract, admin, user1 } = await loadFixture(
+                deployFixture);
+
+            await expect(paymentContract.connect(user1).
+                setPrice(6_000)).to.be.rejectedWith(
+                    'onlyAdmin');
+            await expect(paymentContract.connect(admin).setPrice(6_000)).to.not.be.rejected;
+        });
+
+        it("An updated refund schedule must be longer than one week", async function () {
+            const { paymentContract, admin } = await loadFixture(deployFixture);
+
+            const badRefundSchedule = [50];
+            await expect(paymentContract.connect(admin)
+                .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
+                    'must have at least 1 non-zero refund period');
+        });
+
+        it("An updated refund schedule must end with zero refund", async function () {
+            const { paymentContract, admin } = await loadFixture(deployFixture);
+
+            const badRefundSchedule = [50, 50];
+            await expect(paymentContract.connect(admin)
+                .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
+                    'must end with zero refund');
+        });
+
+        it("An updated refund schedule must decrease over time", async function () {
+            const { paymentContract, admin } = await loadFixture(deployFixture);
+
+            const badRefundSchedule = [50, 100, 0];
+            await expect(paymentContract.connect(admin)
+                .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
+                    'refund must be non-increasing');
+        });
+
+        it("Only the admin can withdraw money from contract", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
+            
+            await time.increaseTo(JAN_FIRST); 
+            const payment1 = await paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+            // No increase of time. Immidiate withdraw
+        
+            await expect(paymentContract.connect(user1).sellerWithdraw([user1.address])).
+                to.be.rejectedWith('onlyAdmin');
+
+            await expect(paymentContract.connect(admin).sellerWithdraw([user1.address])).
+                to.not.be.rejected;
+        });
+
+        it("Only the admin can terminate an agreement", async function () {
+            const { paymentContract, usdcContract, admin, user1, user2 } = await loadFixture(
+                deployFixture);
+            
+            await time.increaseTo(JAN_FIRST); 
+            const payment1 = await paymentContract.connect(user1)
+                .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+            // No increase of time. Immidiate withdraw
+        
+            await expect(paymentContract.connect(user2).sellerTerminateAgreement(user1.address)).
+                to.be.rejectedWith('onlyAdmin');
+
+            await expect(paymentContract.connect(admin).sellerTerminateAgreement(user1.address)).
+                to.not.be.rejected;
+        });
+        it("===", async function () {
+            expect(true).to.equal(true);
         });
     });
 });

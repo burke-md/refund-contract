@@ -74,7 +74,7 @@ contract PaymentAndRefund {
 
 //-----------------------------SELLER (admin)--------------------------------\\
     modifier onlyAdmin {
-        require(msg.sender == admin);
+        require(msg.sender == admin, "onlyAdmin");
         _;
     }
 
@@ -141,26 +141,15 @@ contract PaymentAndRefund {
 
 
     function calculateSafeWithdrawDollars(address _buyer) public view returns(uint256) {
-        /* LOGIC:
-        *  - Check required refund req's
-        *  - Refund value is valid for >= 7 days, this function could be called multiple
-        *    times throughout that time. 
-        */
         uint256 accountRequirments = calculateRefundDollars(_buyer);
         uint256 accountBalance = deposits[_buyer].balanceInDollars;
 
-        if (accountRequirments > accountBalance) {
-            // Prevent erros from nagitive values
+        if (accountRequirments >= accountBalance) {
             return 0;
         }
         
         return accountBalance - accountRequirments;
     }
-
-    //function getEligibleRefundAmount(address _buyer) public view returns(uint64) {}
-    //function getEligibleWithdrawAmount(address[] calldata _buyers) public view returns (uint256) {}
-    //function _sellerWithdraw(address _buyer) internal {}
-    //function _getEligibleWithdrawAmount(address _buyer) internal view returns(uint64) {}
 
     function _getWeeksComplete(address _account) internal view returns(uint256) {
         uint256 startTime = deposits[_account].startTime;
