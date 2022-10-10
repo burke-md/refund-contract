@@ -8,7 +8,7 @@ contract PaymentAndRefund {
 
     IERC20 USDC;
     // Each index is 1 week. First two weeks 100% refund is available
-    uint8[] public refundSchedule = [
+    uint8[15] public refundSchedule = [
         100,100,75,75,75,75,50,50,50,50,25,25,25,25,0
     ];
 
@@ -23,7 +23,7 @@ contract PaymentAndRefund {
         uint64 balanceInDollars;      // Total to ensure each buyers refund is valid at all times
         uint64 depositTime;
         uint64 startTime;
-        uint8[] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
+        uint8[15] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
     }
 //----------------------------------------------------------------------------\\
     constructor(address _usdc, address _rescuer) {
@@ -79,12 +79,15 @@ contract PaymentAndRefund {
         priceInDollars = _price;
     }
 
-    function setRefundSchedule(uint8[] calldata _schedule) external onlyAdmin {
-        require(_schedule.length > 1, "must have at least 1 non-zero refund period");
+    function setRefundSchedule(uint8[15] calldata _schedule) external onlyAdmin {
+        require(_schedule[0] > 0, "must have at least 1 non-zero refund period");
         require(_schedule[_schedule.length - 1] == 0, "must end with zero refund");
 
-        for (uint256 i = 0; i < _schedule.length - 1; ) {
-            require(_schedule[i] >= _schedule[i + 1], "refund must be non-increasing");
+        uint len = _schedule.length;
+        for (uint256 i = 0; i < len - 1; ) {
+            uint256 idxValue = _schedule[i];
+            require(idxValue >= _schedule[i + 1], "refund must be non-increasing");
+            require(idxValue < 101, "refund cannot exceed 100%");
             unchecked {
                 ++i;
             }

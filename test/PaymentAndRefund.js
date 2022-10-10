@@ -604,7 +604,7 @@ describe("PaymentAndRefund", function () {
         it("An updated refund schedule must be longer than one week", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
-            const badRefundSchedule = [50];
+            const badRefundSchedule = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
             await expect(paymentContract.connect(admin)
                 .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
                     'must have at least 1 non-zero refund period');
@@ -613,7 +613,7 @@ describe("PaymentAndRefund", function () {
         it("An updated refund schedule must end with zero refund", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
-            const badRefundSchedule = [50, 50];
+            const badRefundSchedule = [50,50,50,50,50,50,50,50,50,50,50,50,50,50,50];
             await expect(paymentContract.connect(admin)
                 .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
                     'must end with zero refund');
@@ -622,10 +622,19 @@ describe("PaymentAndRefund", function () {
         it("An updated refund schedule must decrease over time", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
-            const badRefundSchedule = [50, 100, 0];
+            const badRefundSchedule = [50,100,50,50,50,50,50,50,50,50,50,50,50,50,0];
             await expect(paymentContract.connect(admin)
                 .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
                     'refund must be non-increasing');
+        });
+
+        it("An updated refund refundSchedule must never include a value greater than 100", async function () {
+            const { paymentContract, admin } = await loadFixture(deployFixture);
+
+            const badRefundSchedule = [200,100,50,50,50,50,50,50,50,50,50,50,50,50,0];
+            await expect(paymentContract.connect(admin)
+                .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
+                    'refund cannot exceed 100%');
         });
 
         it("Only the admin can withdraw money from contract", async function () {
