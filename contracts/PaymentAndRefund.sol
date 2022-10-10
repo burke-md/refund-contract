@@ -16,7 +16,6 @@ contract PaymentAndRefund {
     uint256 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
-    uint64 constant ONE_WEEK = 3600 * 24 * 7 * 1000;
 
     struct Deposit {
         uint64 originalDepositInDollars;  
@@ -30,11 +29,6 @@ contract PaymentAndRefund {
         admin = msg.sender;
         USDC = IERC20(_usdc);
     }
-    /******
-    * TODO:
-    * - Custom log for start dates
-    */
-
 
 //-----------------------------BUYER (student)--------------------------------\\
     function payUpfront(uint64 _price, uint64 _startTime) external {
@@ -159,7 +153,7 @@ contract PaymentAndRefund {
             return 0;
         }
 
-        uint256 weeksComplete = (currentTime - startTime) / ONE_WEEK;
+        uint256 weeksComplete = (currentTime - startTime) / 1 weeks;
         
         return weeksComplete;
     }

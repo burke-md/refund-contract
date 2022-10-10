@@ -20,18 +20,15 @@ const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 
  * These constants will be used with `helpers.time.increaseTo(<time since epoch>);`
  *
  * JAN_FIRST -> Time stamp for 1/1/23 01:01:00 AM
- * JAN_TENTH -> 1 week and 2 days after JAN_FIRST
- * FEB_SEVENTH -> 5 weeks and 2 days after JAN_FIRST
- * APRIL_EIGHTEENTH -> 15 weeks and 2 days after JAN_FIRST
  */
 
-const JAN_FIRST = 1672534860000;
-const JAN_TENTH = 1673312460000;
-const JAN_TWENTY_FOURTH = 1674522060000;
-const FEB_FIRST = 1675213260000;
-const FEB_SEVENTH = 1675731660000;
-const APRIL_EIGHTEENTH = 1681779660000;
-const JAN_2050 = 2524611660000;
+const JAN_FIRST = 1672534860;
+const JAN_TENTH = 1673312460;
+const JAN_TWENTY_FOURTH = 1674522060;
+const FEB_FIRST = 1675213260;
+const FEB_SEVENTH = 1675731660;
+const APRIL_EIGHTEENTH = 1681779660;
+const JAN_2050 = 2524611660;
 
 describe("PaymentAndRefund", function () {
     async function deployFixture() {
@@ -592,9 +589,6 @@ describe("PaymentAndRefund", function () {
 
             await expect(paymentContract.connect(admin).sellerTerminateAgreement(user1.address)).
                 to.not.be.rejected;
-        });
-        it("===", async function () {
-            expect(true).to.equal(true);
         });
     });
 });
