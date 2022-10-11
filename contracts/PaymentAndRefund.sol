@@ -7,7 +7,6 @@ pragma solidity 0.8.17;
 contract PaymentAndRefund {
 
     IERC20 USDC;
-    // Each index is 1 week. First two weeks 100% refund is available
     uint8[15] public refundSchedule = [
         100,100,75,75,75,75,50,50,50,50,25,25,25,25,0
     ];
@@ -20,12 +19,12 @@ contract PaymentAndRefund {
 
     struct Deposit {
         uint64 originalDepositInDollars;  
-        uint64 balanceInDollars;      // Total to ensure each buyers refund is valid at all times
+        uint64 balanceInDollars;
         uint64 depositTime;
         uint64 startTime;
-        uint8[15] refundSchedule; // The refund schedule can change in the future, but it should stay with the agreed up on one
+        uint8[15] refundSchedule;
     }
-//----------------------------------------------------------------------------\\
+
     constructor(address _usdc, address _rescuer) {
         admin = msg.sender;
         rescuer = _rescuer;
@@ -36,7 +35,7 @@ contract PaymentAndRefund {
         require(msg.sender == admin, "onlyAdmin");
         _;
     }
-//-----------------------------BUYER (student)--------------------------------\\
+
     function payUpfront(uint64 _price, uint64 _startTime) external {
         uint64 currentPriceInDollars = priceInDollars;
 
@@ -72,7 +71,6 @@ contract PaymentAndRefund {
         USDC.transfer(msg.sender, refundInDollars * 10 ** 6);
     }
 
-//-----------------------------SELLER (admin)--------------------------------\\
     function setPrice(uint64 _price) external onlyAdmin {
         priceInDollars = _price;
     }
@@ -93,7 +91,6 @@ contract PaymentAndRefund {
         refundSchedule = _schedule;
     }
 
-    // kick student from the program. Refund them according to what they are owed
     function sellerTerminateAgreement(address _buyer) external onlyAdmin {
         uint256 refundInDollars = calculateRefundDollars(_buyer);
 
@@ -118,7 +115,7 @@ contract PaymentAndRefund {
         depositedUSDC -= dollarsToWithdraw;
         USDC.transfer(admin, dollarsToWithdraw *10 **6);
     }
-//------------------------------------UTILS------------------------------------\\
+
     function calculateRefundDollars(address _buyer) public view returns(uint256) {
         uint256 paidDollars = deposits[_buyer].originalDepositInDollars;
         uint256 scheduleLength = deposits[_buyer].refundSchedule.length;
@@ -131,7 +128,7 @@ contract PaymentAndRefund {
         }
 
         if (weeksComplete > scheduleLength) {
-            multiplier == 0;
+            multiplier = 0;
         }
 
         return (paidDollars * multiplier) / 100;
@@ -153,7 +150,7 @@ contract PaymentAndRefund {
         uint256 startTime = deposits[_account].startTime;
         uint256 currentTime = block.timestamp;
         
-        if (currentTime < startTime) { // Refund before course starts
+        if (currentTime < startTime) { 
             return 0;
         }
 

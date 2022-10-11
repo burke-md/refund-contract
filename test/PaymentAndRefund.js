@@ -216,14 +216,13 @@ describe("PaymentAndRefund", function () {
 
                     const expectedContractBalanceAfterTermination = Number(contractBalanceBeforeRefund) -
                         Number(calculatedRefundSixDecimals);
-
                     const contractBalanceAfterRefund = await usdcContract
                         .balanceOf(paymentContract.address);
+                    const globalVarBalance = await paymentContract.depositedUSDC();
 
+                    expect(globalVarBalance).to.equal(1250);// See original refundSchedule in contract index 5
                     expect(expectedContractBalanceAfterTermination).to.equal(contractBalanceAfterRefund);
 
-                    const outstandingStudentRefund = await paymentContract
-                        .calculateRefundDollars(user1.address);
             });
         });
 
@@ -373,11 +372,10 @@ describe("PaymentAndRefund", function () {
 
                     const contractBalanceAfterRefund = await usdcContract
                         .balanceOf(paymentContract.address);
+                    const globalVarBalance = await paymentContract.depositedUSDC();
 
+                    expect(globalVarBalance).to.equal(2500);// See NEW_REFUND_SCHEDULER @ top of file
                     expect(expectedContractBalanceAfterTermination).to.equal(contractBalanceAfterRefund);
-
-                    const outstandingStudentRefund = await paymentContract
-                        .calculateRefundDollars(user1.address);
             });
         });
 
@@ -601,7 +599,7 @@ describe("PaymentAndRefund", function () {
             await expect(paymentContract.connect(admin).setPrice(6_000)).to.not.be.rejected;
         });
 
-        it("An updated refund schedule must be longer than one week", async function () {
+        it("An updated refundSchedule must be longer than one week", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
             const badRefundSchedule = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
@@ -610,7 +608,7 @@ describe("PaymentAndRefund", function () {
                     'must have at least 1 non-zero refund period');
         });
 
-        it("An updated refund schedule must end with zero refund", async function () {
+        it("An updated refundSchedule must end with zero refund", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
             const badRefundSchedule = [50,50,50,50,50,50,50,50,50,50,50,50,50,50,50];
@@ -619,7 +617,7 @@ describe("PaymentAndRefund", function () {
                     'must end with zero refund');
         });
 
-        it("An updated refund schedule must decrease over time", async function () {
+        it("An updated schedule must decrease over time", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
             const badRefundSchedule = [50,100,50,50,50,50,50,50,50,50,50,50,50,50,0];
@@ -628,10 +626,10 @@ describe("PaymentAndRefund", function () {
                     'refund must be non-increasing');
         });
 
-        it("An updated refund refundSchedule must never include a value greater than 100", async function () {
+        it("An updated refundSchedule must never include a value greater than 100", async function () {
             const { paymentContract, admin } = await loadFixture(deployFixture);
 
-            const badRefundSchedule = [200,100,50,50,50,50,50,50,50,50,50,50,50,50,0];
+            const badRefundSchedule = [101,100,50,50,50,50,50,50,50,50,50,50,50,50,0];
             await expect(paymentContract.connect(admin)
                 .setRefundSchedule(badRefundSchedule)).to.be.rejectedWith(
                     'refund cannot exceed 100%');
@@ -662,11 +660,16 @@ describe("PaymentAndRefund", function () {
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             // No increase of time. Immidiate withdraw
         
+
             await expect(paymentContract.connect(user2).sellerTerminateAgreement(user1.address)).
                 to.be.rejectedWith('onlyAdmin');
 
             await expect(paymentContract.connect(admin).sellerTerminateAgreement(user1.address)).
                 to.not.be.rejected;
+
+            const globalVarBalance = await paymentContract.depositedUSDC();
+
+            expect(globalVarBalance).to.equal(0);
         });
     });
 });
