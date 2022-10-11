@@ -32,12 +32,10 @@ contract PaymentAndRefund {
         USDC = IERC20(_usdc);
     }
 
-//-----------------------------ACCESS------------------------------------------\\
     modifier onlyAdmin {
         require(msg.sender == admin, "onlyAdmin");
         _;
     }
-
 //-----------------------------BUYER (student)--------------------------------\\
     function payUpfront(uint64 _price, uint64 _startTime) external {
         uint64 currentPriceInDollars = priceInDollars;
