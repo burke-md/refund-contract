@@ -12,6 +12,7 @@ const DIA_ADDRESS = '0x84cA8bc7997272c7CfB4D0Cd3D55cd942B3c9419';
 const DIA_WHALE = '0x5a52e96bacdabb82fd05763e25335261b270efcb';
 const PRICE_IN_DOLLARS = 5_000; 
 const PRICE_SIX_DECIMALS = 5_000_000_000;
+const USDC_DECIMALS = 10**6;
 const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * 10**6;
 const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 0];
 
@@ -113,7 +114,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 1.00;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -137,7 +138,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 1.00;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -161,7 +162,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 0.75;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -185,7 +186,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 0;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -210,7 +211,7 @@ describe("PaymentAndRefund", function () {
                         .balanceOf(paymentContract.address);
                     const calculatedRefundInDollars = await paymentContract
                         .calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     await paymentContract.connect(admin).sellerTerminateAgreement(user1.address);
 
@@ -255,7 +256,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 1.00;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -282,7 +283,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 0.90;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -309,7 +310,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = PRICE_IN_DOLLARS * 0.50;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -336,7 +337,7 @@ describe("PaymentAndRefund", function () {
                     const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                     const expectedRefundInDollars = 0;
                     const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -363,7 +364,7 @@ describe("PaymentAndRefund", function () {
                         .balanceOf(paymentContract.address);
                     const calculatedRefundInDollars = await paymentContract
                         .calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                     await paymentContract.connect(admin).sellerTerminateAgreement(user1.address);
 
@@ -540,7 +541,7 @@ describe("PaymentAndRefund", function () {
                 const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
                 const expectedRefundInDollars = 0;
                 const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                const calculatedRefundSixDecimals = calculatedRefundInDollars * 10**6;
+                const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
 
                 expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
@@ -660,7 +661,6 @@ describe("PaymentAndRefund", function () {
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             // No increase of time. Immidiate withdraw
         
-
             await expect(paymentContract.connect(user2).sellerTerminateAgreement(user1.address)).
                 to.be.rejectedWith('onlyAdmin');
 
