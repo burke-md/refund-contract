@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: UNLICENSED
+//SPDX-License-Identifier: GPL-3.0
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -15,7 +15,6 @@ contract PaymentAndRefund {
     uint256 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
-    address public rescuer;
 
     struct Deposit {
         uint64 originalDepositInDollars;  
@@ -25,9 +24,8 @@ contract PaymentAndRefund {
         uint8[15] refundSchedule;
     }
 
-    constructor(address _usdc, address _rescuer) {
+    constructor(address _usdc) {
         admin = msg.sender;
-        rescuer = _rescuer;
         USDC = IERC20(_usdc);
     }
 
@@ -159,8 +157,7 @@ contract PaymentAndRefund {
         return weeksComplete;
     }
 
-    function rescueERC20Token(IERC20 _tokenContract, uint256 _amount) external {
-        require(msg.sender == rescuer, "onlyRescuer");
-        _tokenContract.transfer(rescuer, _amount);
+    function rescueERC20Token(IERC20 _tokenContract, uint256 _amount) external onlyAdmin {
+        _tokenContract.transfer(admin, _amount);
     }
 }

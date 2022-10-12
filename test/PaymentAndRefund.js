@@ -35,10 +35,10 @@ const JAN_2050 = 2524611660;
 
 describe("PaymentAndRefund", function () {
     async function deployFixture() {
-        const [admin, user1, user2, rescuer] = await ethers.getSigners();
+        const [admin, user1, user2] = await ethers.getSigners();
 
         const PaymentContract = await ethers.getContractFactory("PaymentAndRefund");
-        const paymentContract = await PaymentContract.deploy(USDC_ADDRESS, rescuer.address);
+        const paymentContract = await PaymentContract.deploy(USDC_ADDRESS);
 
         await paymentContract.deployed();
 
@@ -60,7 +60,7 @@ describe("PaymentAndRefund", function () {
         const approval2 = await usdcContract.connect(user2)
             .approve(paymentContract.address, PRICE_SIX_DECIMALS);
 
-        return { paymentContract, usdcContract, diaContract, admin, user1, user2, rescuer };
+        return { paymentContract, usdcContract, diaContract, admin, user1, user2 };
     }
 
     describe("Deposit", function () {
@@ -465,62 +465,62 @@ describe("PaymentAndRefund", function () {
     });
 
     describe("Rescuse funds", function () {
-        it("Rescuer can withdraw USDC if funds get stuck in payment contract", async function () {
-            const { paymentContract, usdcContract, user1, rescuer } = await loadFixture(
+        it("Admin can withdraw USDC if funds get stuck in payment contract", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                 deployFixture);
 
             await usdcContract.connect(user1).transfer(paymentContract.address, SPENDING_MONEY);
 
-            await paymentContract.connect(rescuer)
+            await paymentContract.connect(admin)
                 .rescueERC20Token(USDC_ADDRESS, SPENDING_MONEY);
 
-            const rescuerBalance = await usdcContract.balanceOf(rescuer.address);
+            const adminBalance = await usdcContract.balanceOf(admin.address);
             const contractBalance = await usdcContract.balanceOf(paymentContract.address);
 
-            expect(rescuerBalance).to.equal(SPENDING_MONEY);
+            expect(adminBalance).to.equal(SPENDING_MONEY);
             expect(contractBalance).to.equal(0);
         });
 
-        it("Rescuer can withdraw alternate ERC20 token from contract", async function () {
+        it("Admin can withdraw alternate ERC20 token from contract", async function () {
             const { 
                 paymentContract, 
                 usdcContract, 
-                diaContract, 
-                user1, 
-                rescuer } = await loadFixture(deployFixture);
+                diaContract,
+                admin,
+                user1 } = await loadFixture(deployFixture);
 
             await diaContract.connect(user1)
                 .transfer(paymentContract.address, SPENDING_MONEY);
 
-            await paymentContract.connect(rescuer)
+            await paymentContract.connect(admin)
                 .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY);
 
-            const rescuerBalance = await diaContract.balanceOf(rescuer.address);
+            const adminBalance = await diaContract.balanceOf(admin.address);
             const contractBalance = await diaContract.balanceOf(paymentContract.address);
 
-            expect(rescuerBalance).to.equal(SPENDING_MONEY);
+            expect(adminBalance).to.equal(SPENDING_MONEY);
             expect(contractBalance).to.equal(0);
         });
 
-        it("Only the rescuer can use `rescueERC20Token` function", async function () {
+        it("Only the admin can use `rescueERC20Token` function", async function () {
             const { 
                 paymentContract, 
                 usdcContract, 
                 diaContract, 
                 admin,
-                user1, 
-                rescuer } = await loadFixture(deployFixture);
+                user1,
+                user2 } = await loadFixture(deployFixture);
 
             await diaContract.connect(user1)
                 .transfer(paymentContract.address, SPENDING_MONEY);
 
             await expect(paymentContract.connect(user1)
                 .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY)).to.be.rejectedWith(
-                    'onlyRescuer');
+                    'onlyAdmin');
 
-            await expect(paymentContract.connect(admin)
+            await expect(paymentContract.connect(user2)
                 .rescueERC20Token(DIA_ADDRESS, SPENDING_MONEY)).to.be.rejectedWith(
-                    'onlyRescuer');
+                    'onlyAdmin');
         });
     });
 
