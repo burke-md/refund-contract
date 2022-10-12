@@ -45,8 +45,10 @@ contract PaymentAndRefund {
                 "User must have made allowance via USDC contract.");
                 
         USDC.transferFrom(msg.sender, address(this), currentPriceInDollars * 10 ** 6);
-        
-        depositedUSDC += currentPriceInDollars;
+
+        unchecked {
+            depositedUSDC += currentPriceInDollars;
+        }
 
         Deposit memory deposit;
         deposit = Deposit({
@@ -104,9 +106,10 @@ contract PaymentAndRefund {
 
         for (uint256 i = 0; i < len; ) {
             uint256 safeValue = calculateSafeWithdrawDollars(_buyers[i]);
-            dollarsToWithdraw += safeValue;
+
             deposits[_buyers[i]].balanceInDollars -= uint64(safeValue);
             unchecked {
+                dollarsToWithdraw += safeValue;
                 ++i;
             }
         }

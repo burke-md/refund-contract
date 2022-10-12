@@ -10,5 +10,5 @@
 - [x] Admin and rescuer should be the same       - (update contract, then tests)
 - [x] License should be GPL-3.0                  - (Resolved)
 - [ ] Prevent people from 'starting' to far in past or future
-- [ ] Uncheck math L 51 L109
+- [x] Uncheck math L 51 L109
 - [ ] Solmint
