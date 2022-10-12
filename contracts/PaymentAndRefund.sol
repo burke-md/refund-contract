@@ -4,6 +4,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 pragma solidity 0.8.17;
 
+///@author M. Burke
+///@notice This is payment contract that publicaly enforces the refund schedule.
+
 contract PaymentAndRefund {
     IERC20 USDC;
     uint8[15] public refundSchedule = [
@@ -31,6 +34,9 @@ contract PaymentAndRefund {
     uint256 public constant MAX_TIME_FROM_START = 30 days;
     uint256 public constant USDC_DECIMALS = 10**6;
 
+    ///@notice This struct is used to track balance on an indiviual user
+    ///        basis, as well as the agreed upon refundSchedule.
+
     struct Deposit {
         uint64 originalDepositInDollars;
         uint64 balanceInDollars;
@@ -48,6 +54,10 @@ contract PaymentAndRefund {
         require(msg.sender == admin, "onlyAdmin");
         _;
     }
+
+    ///@notice Users are required to make allowance with USDC contract before calling.
+    ///@param _price The price in dollars to be paid.
+    ///@param _startTime The start time in seconds. See EPOCH time converter.
 
     function payUpfront(uint64 _price, uint64 _startTime) external {
         uint64 currentPriceInDollars = priceInDollars;
@@ -96,6 +106,7 @@ contract PaymentAndRefund {
         deposits[msg.sender] = deposit;
     }
 
+    ///@notice Users can claim refund and remove 'account' from contract.
     function buyerClaimRefund() external {
         uint256 refundInDollars = calculateRefundDollars(msg.sender);
 
@@ -105,10 +116,16 @@ contract PaymentAndRefund {
         USDC.transfer(msg.sender, refundInDollars * USDC_DECIMALS);
     }
 
+    ///@dev See that `priceInDollars` is mutable BUT current price is stored
+    ///     in user struct at time of purchase.
+    ///@param _price The price in dollars to be set.
     function setPrice(uint64 _price) external onlyAdmin {
         priceInDollars = _price;
     }
 
+    ///@dev See that `refundSchedule` is mutable BUT current schedule is
+    ///     stored in user struct at time of purchase.
+    ///@param _schedule The new 15 week schedule to be set.
     function setRefundSchedule(uint8[15] calldata _schedule)
         external
         onlyAdmin
@@ -137,6 +154,8 @@ contract PaymentAndRefund {
         refundSchedule = _schedule;
     }
 
+    ///@dev Push payment to user and removal of 'account'
+    ///@param _buyer The user's wallet address who is to be removed.
     function sellerTerminateAgreement(address _buyer) external onlyAdmin {
         uint256 refundInDollars = calculateRefundDollars(_buyer);
 
@@ -146,6 +165,9 @@ contract PaymentAndRefund {
         USDC.transfer(_buyer, refundInDollars * USDC_DECIMALS);
     }
 
+    ///@dev See calculation to ensure user refund policy is respected.
+    ///@param _buyers An array of active user accounts (wallet addresses)
+    ///       to withdraw funds from.
     function sellerWithdraw(address[] calldata _buyers) external onlyAdmin {
         uint256 dollarsToWithdraw = 0;
         uint256 len = _buyers.length;
@@ -163,6 +185,9 @@ contract PaymentAndRefund {
         USDC.transfer(admin, dollarsToWithdraw * USDC_DECIMALS);
     }
 
+    ///@notice This is used internally for book keeping, but also available
+    ///        publicaly for users. 
+    ///@param _buyer User wallet address.
     function calculateRefundDollars(address _buyer)
         public
         view
@@ -185,6 +210,9 @@ contract PaymentAndRefund {
         return (paidDollars * multiplier) / 100;
     }
 
+    ///@notice This is used internally for book keeping, but also available
+    ///        publicaly for users. 
+    ///@param _buyer User wallet address.
     function calculateSafeWithdrawDollars(address _buyer)
         public
         view
@@ -200,12 +228,15 @@ contract PaymentAndRefund {
         return accountBalance - accountRequirments;
     }
 
-    function _getWeeksComplete(address _account)
+    ///@notice Used interanlly for calculating where a user is within their
+    ///        refund schedule.
+    ///@param _buyer User wallet address.
+    function _getWeeksComplete(address _buyer)
         internal
         view
         returns (uint256)
     {
-        uint256 startTime = deposits[_account].startTime;
+        uint256 startTime = deposits[_buyer].startTime;
         uint256 currentTime = block.timestamp;
 
         if (currentTime < startTime) {

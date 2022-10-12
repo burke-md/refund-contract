@@ -13,6 +13,8 @@ The standard test `npx hardhat test` is now producing an error 'could not determ
 Instead run the coverage test command :
 `npx hardhat coverage` via solidity-coverage package
 
+Run `npx prettier --write 'contracts/**/*.sol` for auto formatting
+
 ## Mutation testing:
 
 Install: `pip3 install --user-vertigo`

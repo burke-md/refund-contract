@@ -11,5 +11,5 @@
 - [x] License should be GPL-3.0                                 - (Resolved)
 - [x] Prevent people from 'starting' to far in past or future   - (Implemented w/ 30 day constant)
 - [x] Uncheck math L 51 L109                                    - (Resolved)
-- [ ] Solmint
+- [x] Solmint
 - [x] Rerun and resolve mutation test                           - (Notes added to mutationOutput dir)
