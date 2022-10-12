@@ -26,6 +26,8 @@ const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 
  */
 
 const JAN_FIRST = 1672534860;
+const JAN_FIRST_FUTURE_ERROR = JAN_FIRST + (60 * 60 * 24 * 30) + 3; // This is a time stamp to far in the future to pay for cohort
+const JAN_FIRST_PAST_ERROR = JAN_FIRST - (60 * 60 * 24 * 30) - 1; // This is a time stamp to far in the past to pay for cohort
 const JAN_TENTH = 1673312460;
 const JAN_TWENTY_FOURTH = 1674522060;
 const FEB_FIRST = 1675213260;
@@ -68,6 +70,7 @@ describe("PaymentAndRefund", function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
 
+            await time.increaseTo(JAN_FIRST); 
             await paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             const contractBalance = await usdcContract
                 .balanceOf(paymentContract.address);
@@ -78,6 +81,7 @@ describe("PaymentAndRefund", function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
 
+            await time.increaseTo(JAN_FIRST); 
             const payment1 = await paymentContract.connect(user1)
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
 
@@ -91,6 +95,7 @@ describe("PaymentAndRefund", function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
 
+            await time.increaseTo(JAN_FIRST); 
             const payment1 = await paymentContract.connect(user1)
                 .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
             const valueFromContract = await paymentContract.depositedUSDC();
@@ -420,6 +425,7 @@ describe("PaymentAndRefund", function () {
                 *  
                 *  User1 & user2 will approve USDC allowance
                 *  User1 will pay for course begining JAN_FIRST
+                *  Fast forward one week to allow second user to join another cohort
                 *  User2 will pay for courses begining FEB_FIRST
                 *  Fast forward to JAN_TWENTY_FOURTH 
                 *  Admin will withdraw from both accounts 
@@ -438,6 +444,9 @@ describe("PaymentAndRefund", function () {
 
                 const payment1 = await paymentContract.connect(user1)
                     .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+                    
+                await time.increaseTo(JAN_TENTH); 
+
                 const payment2 = await paymentContract.connect(user2)
                     .payUpfront(PRICE_IN_DOLLARS, FEB_FIRST);
 
@@ -572,6 +581,7 @@ describe("PaymentAndRefund", function () {
             const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                 deployFixture);
             
+            await time.increaseTo(JAN_FIRST); 
             await expect(paymentContract.connect(user1)
                 .payUpfront(10_000, JAN_FIRST)).to.be.rejectedWith(
                     'User must pay correct price.');
@@ -581,6 +591,8 @@ describe("PaymentAndRefund", function () {
             const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                 deployFixture);
             
+            await time.increaseTo(JAN_FIRST); 
+
             // Allowance is made in fixture.
             await usdcContract.connect(user1).decreaseAllowance(
                 paymentContract.address, PRICE_SIX_DECIMALS);
@@ -590,14 +602,22 @@ describe("PaymentAndRefund", function () {
                     'User must have made allowance via USDC contract.');
         });
 
-        it("Only the admin account can update the price", async function () {
-            const { paymentContract, admin, user1 } = await loadFixture(
+        it("User must pass in start date within bounds(future)", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
                 deployFixture);
+            
+            await time.increaseTo(JAN_FIRST); 
+            await expect(paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST_FUTURE_ERROR))
+                .to.be.rejectedWith('User must select start time within bounds.');
+        });
 
-            await expect(paymentContract.connect(user1).
-                setPrice(6_000)).to.be.rejectedWith(
-                    'onlyAdmin');
-            await expect(paymentContract.connect(admin).setPrice(6_000)).to.not.be.rejected;
+        it("User must pass in start date within bounds(past)", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
+            
+            await time.increaseTo(JAN_FIRST); 
+            await expect(paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST_PAST_ERROR))
+                .to.be.rejectedWith('User must select start time within bounds.');
         });
 
         it("An updated refundSchedule must be longer than one week", async function () {
@@ -670,6 +690,16 @@ describe("PaymentAndRefund", function () {
             const globalVarBalance = await paymentContract.depositedUSDC();
 
             expect(globalVarBalance).to.equal(0);
+        });
+
+        it("Only the admin account can update the price", async function () {
+            const { paymentContract, admin, user1 } = await loadFixture(
+                deployFixture);
+
+            await expect(paymentContract.connect(user1).
+                setPrice(6_000)).to.be.rejectedWith(
+                    'onlyAdmin');
+            await expect(paymentContract.connect(admin).setPrice(6_000)).to.not.be.rejected;
         });
     });
 });

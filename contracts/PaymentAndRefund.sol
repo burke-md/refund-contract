@@ -15,6 +15,8 @@ contract PaymentAndRefund {
     uint256 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
+    uint256 public constant MAX_TIME_FROM_START = 30 days;
+    uint256 public constant USDC_DECIMALS = 10**6; 
 
     struct Deposit {
         uint64 originalDepositInDollars;  
@@ -33,18 +35,24 @@ contract PaymentAndRefund {
         require(msg.sender == admin, "onlyAdmin");
         _;
     }
-
+    
     function payUpfront(uint64 _price, uint64 _startTime) external {
         uint64 currentPriceInDollars = priceInDollars;
+        uint64 currentTime = uint64(block.timestamp);
+       
+        uint256 maxPastTime = currentTime - MAX_TIME_FROM_START - 1;
+        uint256 maxFutureTime = currentTime + MAX_TIME_FROM_START + 1;
 
+        require(_startTime >= maxPastTime && _startTime <= maxFutureTime,
+                "User must select start time within bounds.");
         require(deposits[msg.sender].depositTime == 0,
                 "User cannot deposit twice.");
         require(_price == currentPriceInDollars,
                 "User must pay correct price.");
-        require(USDC.allowance(msg.sender, address(this)) >= currentPriceInDollars * 10 ** 6,
+        require(USDC.allowance(msg.sender, address(this)) >= currentPriceInDollars * USDC_DECIMALS,
                 "User must have made allowance via USDC contract.");
                 
-        USDC.transferFrom(msg.sender, address(this), currentPriceInDollars * 10 ** 6);
+        USDC.transferFrom(msg.sender, address(this), currentPriceInDollars * USDC_DECIMALS);
 
         unchecked {
             depositedUSDC += currentPriceInDollars;
@@ -54,7 +62,7 @@ contract PaymentAndRefund {
         deposit = Deposit({
             originalDepositInDollars: currentPriceInDollars,
             balanceInDollars: currentPriceInDollars,
-            depositTime: uint64(block.timestamp),
+            depositTime: currentTime,
             startTime: _startTime,
             refundSchedule: refundSchedule
         });
@@ -68,7 +76,7 @@ contract PaymentAndRefund {
         depositedUSDC -= refundInDollars; 
         delete deposits[msg.sender];
 
-        USDC.transfer(msg.sender, refundInDollars * 10 ** 6);
+        USDC.transfer(msg.sender, refundInDollars * USDC_DECIMALS);
     }
 
     function setPrice(uint64 _price) external onlyAdmin {
@@ -97,7 +105,7 @@ contract PaymentAndRefund {
         depositedUSDC -= refundInDollars;
         delete deposits[_buyer];
 
-        USDC.transfer(_buyer, refundInDollars * 10 ** 6);
+        USDC.transfer(_buyer, refundInDollars * USDC_DECIMALS);
     }
 
     function sellerWithdraw(address[] calldata _buyers) external onlyAdmin {
@@ -114,7 +122,7 @@ contract PaymentAndRefund {
             }
         }
         depositedUSDC -= dollarsToWithdraw;
-        USDC.transfer(admin, dollarsToWithdraw *10 **6);
+        USDC.transfer(admin, dollarsToWithdraw * USDC_DECIMALS);
     }
 
     function calculateRefundDollars(address _buyer) public view returns(uint256) {
