@@ -1,4 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-solhint");
 require("solidity-coverage");
 require("dotenv").config();
 
