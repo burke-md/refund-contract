@@ -40,8 +40,8 @@ contract PaymentAndRefund {
         uint64 currentPriceInDollars = priceInDollars;
         uint64 currentTime = uint64(block.timestamp);
        
-        uint256 maxPastTime = currentTime - MAX_TIME_FROM_START - 1;
-        uint256 maxFutureTime = currentTime + MAX_TIME_FROM_START + 1;
+        uint256 maxPastTime = currentTime - MAX_TIME_FROM_START;
+        uint256 maxFutureTime = currentTime + MAX_TIME_FROM_START;
 
         require(_startTime >= maxPastTime && _startTime <= maxFutureTime,
                 "User must select start time within bounds.");

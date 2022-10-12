@@ -26,8 +26,8 @@ const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 
  */
 
 const JAN_FIRST = 1672534860;
-const JAN_FIRST_FUTURE_ERROR = JAN_FIRST + (60 * 60 * 24 * 30) + 3; // This is a time stamp to far in the future to pay for cohort
-const JAN_FIRST_PAST_ERROR = JAN_FIRST - (60 * 60 * 24 * 30) - 1; // This is a time stamp to far in the past to pay for cohort
+const JAN_FIRST_FUTURE_ERROR = JAN_FIRST + (60 * 60 * 24 * 30) + 2; // This is a time stamp to far in the future to pay for cohort
+const JAN_FIRST_PAST_ERROR = JAN_FIRST - (60 * 60 * 24 * 30); // This is a time stamp to far in the past to pay for cohort
 const JAN_TENTH = 1673312460;
 const JAN_TWENTY_FOURTH = 1674522060;
 const FEB_FIRST = 1675213260;
@@ -612,7 +612,7 @@ describe("PaymentAndRefund", function () {
         });
 
         it("User must pass in start date within bounds(past)", async function () {
-            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+            const { paymentContract, usdcContract, user1 } = await loadFixture(
                 deployFixture);
             
             await time.increaseTo(JAN_FIRST); 
