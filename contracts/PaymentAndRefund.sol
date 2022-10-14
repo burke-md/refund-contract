@@ -260,6 +260,20 @@ contract PaymentAndRefund {
         external
         onlyAdmin
     {
-        _tokenContract.transfer(admin, _amount);
+        if (_tokenContract != USDC) {
+            _tokenContract.transfer(admin, _amount);
+            return;
+        }
+
+        // For transfer of USDC make check (passed in `_amount` is ignored and
+        // amountToWithdraw is calculated.
+
+        uint256 contractBalance = USDC.balanceOf(address(this));
+
+        if (contractBalance > depositedUSDC * USDC_DECIMALS) {
+            uint256 amountToWithdraw = contractBalance -
+                (depositedUSDC * USDC_DECIMALS);
+            _tokenContract.transfer(admin, amountToWithdraw);
+        }
     }
 }

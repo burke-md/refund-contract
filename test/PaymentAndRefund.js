@@ -13,7 +13,11 @@ const DIA_WHALE = '0x5a52e96bacdabb82fd05763e25335261b270efcb';
 const PRICE_IN_DOLLARS = 5_000; 
 const PRICE_SIX_DECIMALS = 5_000_000_000;
 const USDC_DECIMALS = 10**6;
+<<<<<<< HEAD
 const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * 10**6;
+=======
+const SPENDING_MONEY = PRICE_IN_DOLLARS * 2 * USDC_DECIMALS;
+>>>>>>> dcd915e03e23e196c156b012c6d9582c4f118607
 const NEW_REFUND_SCHEDULER = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 9, 8, 7, 6, 0];
 
 /* 
@@ -490,6 +494,62 @@ describe("PaymentAndRefund", function () {
             expect(contractBalance).to.equal(0);
         });
 
+<<<<<<< HEAD
+=======
+        it("Admin can withdraw stuck USDC but NOT the USDC from purchase", async function () {
+            const { paymentContract, usdcContract, admin, user1, user2 } = await loadFixture(
+                deployFixture);
+
+                /* THIS TEST WILL COVER THE FOLLOWING SITUATION:
+                *  
+                *  User1 transfers USDC into contract
+                *  User2 makes valid purchase
+                *  Admin makes attmp to withdraw total amount of USDC in contract
+                *  Rescue function checks math, returns only transfered amount
+                */
+            await time.increaseTo(JAN_FIRST); 
+            await usdcContract.connect(user1).transfer(paymentContract.address, SPENDING_MONEY);
+            await paymentContract.connect(user2).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+
+            expect(await usdcContract.balanceOf(admin.address)).to.equal(0);
+
+            await paymentContract.connect(admin)
+                .rescueERC20Token(USDC_ADDRESS, SPENDING_MONEY + PRICE_IN_DOLLARS);
+
+            const adminBalance = await usdcContract.balanceOf(admin.address);
+            const contractBalance = await usdcContract.balanceOf(paymentContract.address);
+
+            //expect(adminBalance).to.equal(SPENDING_MONEY);
+            expect(contractBalance).to.equal(PRICE_SIX_DECIMALS);
+        });
+
+        it("Admin will not withdraw if there are no funds stuck ", async function () {
+            const { paymentContract, usdcContract, admin, user1 } = await loadFixture(
+                deployFixture);
+
+                /* THIS TEST WILL COVER THE FOLLOWING SITUATION:
+                *  
+                *  User1 makes valid purchase
+                *  Admin makes attmp to withdraw total amount of USDC in contract
+                *  Rescue function checks math, contract balance remains the same
+                */
+            await time.increaseTo(JAN_FIRST); 
+            await paymentContract.connect(user1).payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
+
+            expect(await usdcContract.balanceOf(admin.address)).to.equal(0);
+            expect(await usdcContract.balanceOf(paymentContract.address)).to.equal(PRICE_SIX_DECIMALS);
+
+            await paymentContract.connect(admin)
+                .rescueERC20Token(USDC_ADDRESS, SPENDING_MONEY);
+
+            const adminBalanceAfter = await usdcContract.balanceOf(admin.address);
+            const contractBalanceAfter = await usdcContract.balanceOf(paymentContract.address);
+
+            expect(adminBalanceAfter).to.equal(0);
+            expect(contractBalanceAfter).to.equal(PRICE_SIX_DECIMALS);
+        });
+
+>>>>>>> dcd915e03e23e196c156b012c6d9582c4f118607
         it("Admin can withdraw alternate ERC20 token from contract", async function () {
             const { 
                 paymentContract, 

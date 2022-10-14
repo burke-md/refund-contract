@@ -14,25 +14,11 @@ Run: `vertigo run --hardhat-parallel 8`
 ### 3 Mutations remain:
 
 
+Mutation:
 ```
+[+] Survivors
 Mutation:
     File: /home/mb/Documents/code/refund-contract/contracts/PaymentAndRefund.sol
-    Line nr: 45
-    Result: Lived
-    Original line:
-                 require(_startTime >= maxPastTime && _startTime <= maxFutureTime,
-
-    Mutated line:
-                 require(_startTime >= maxPastTime && _startTime < maxFutureTime,
-
-    ACTION TAKEN: None. This require statment is to enforce a range. Changing the 
-                  `<=` to a `<` ensures the value is still within the range. The 
-                  possible change here would be to use the more restrictive operator
-                  and variable -> `maxFutureTimePlusOneSecond` but this has been
-                  avoided for simplicity.
-                  
-                  
-Mutation:
     Line nr: 129
     Result: Lived
     Original line:
@@ -47,6 +33,7 @@ Mutation:
                   function's requirments).
 
 Mutation:
+    File: /home/mb/Documents/code/refund-contract/contracts/PaymentAndRefund.sol
     Line nr: 152
     Result: Lived
     Original line:
@@ -58,6 +45,37 @@ Mutation:
     ACTION TAKEN: None. The business logic of this conditional statment sets a variable to 0. In 
                   circumstance of variable equality, it is later set to zero as well (the two values
                   are subtracted. The if statment is to protect against creating a nagitive number).
+
+Mutation:
+    File: /home/mb/Documents/code/refund-contract/contracts/PaymentAndRefund.sol
+    Line nr: 272
+    Result: Lived
+    Original line:
+                 if (contractBalance > depositedUSDC * USDC_DECIMALS) {
+
+    Mutated line:
+                 if (contractBalance >= depositedUSDC * USDC_DECIMALS) {
+
+    ACTION TAKEN: None. This if statement is used to ensure the subtraction that follows does not
+                  procude a nagitive value.
+
+Mutation:
+    File: /home/mb/Documents/code/refund-contract/contracts/PaymentAndRefund.sol
+    Line nr: 272
+    Result: Lived
+    Original line:
+                 if (contractBalance > depositedUSDC * USDC_DECIMALS) {
+
+    Mutated line:
+                 if (contractBalance > depositedUSDC / USDC_DECIMALS) {
+
+    ACTION TAKEN: None. This mutation is likely to cause a decimal value and revert.
+                  Ex:
+                  if (5_000_000_000 > 5_000 / 10 **6) -> 5_000_000_000 / 0.005_000
+
+                  If there were 201 purchasers this would result in a division by 1.005
+                  and the GT check would fail. 
+[*] Done! 
 ```
 ## Unit tests
 ![Screen Shot 2022-10-12 at 11 24 31 AM](https://user-images.githubusercontent.com/22263098/195384417-d1514f19-9ac0-4138-844b-47a7f2c0c657.png)
