@@ -9,7 +9,7 @@ pragma solidity 0.8.17;
  */
 
 contract PaymentAndRefund {
-    IERC20 USDC;
+    IERC20 immutable USDC;
     uint8[15] public refundSchedule = [
         100,
         100,
@@ -68,7 +68,11 @@ contract PaymentAndRefund {
         uint256 maxFutureTime = currentTime + MAX_TIME_FROM_START;
 
         require(
-            _startTime >= maxPastTime && _startTime <= maxFutureTime,
+            _startTime >= maxPastTime,
+            "User must select start time within bounds."
+        );
+        require(
+            _startTime <= maxFutureTime,
             "User must select start time within bounds."
         );
         require(
@@ -123,7 +127,7 @@ contract PaymentAndRefund {
      *  @param _price The price in dollars to be set.
      */
 
-    function setPrice(uint64 _price) external onlyAdmin {
+    function setPrice(uint64 _price) external payable onlyAdmin {
         priceInDollars = _price;
     }
 
@@ -134,6 +138,7 @@ contract PaymentAndRefund {
 
     function setRefundSchedule(uint8[15] calldata _schedule)
         external
+        payable
         onlyAdmin
     {
         require(
@@ -164,7 +169,7 @@ contract PaymentAndRefund {
      *  @param _buyer The user's wallet address who is to be removed.
      */
 
-    function sellerTerminateAgreement(address _buyer) external onlyAdmin {
+    function sellerTerminateAgreement(address _buyer) external payable onlyAdmin {
         uint256 refundInDollars = calculateRefundDollars(_buyer);
 
         depositedUSDC -= refundInDollars;
@@ -271,7 +276,7 @@ contract PaymentAndRefund {
         onlyAdmin
     {
         if (_tokenContract != USDC) {
-            _tokenContract.transfer(admin, _amount);
+            _tokenContract.transfer(msg.sender, _amount);
             return;
         }
 
