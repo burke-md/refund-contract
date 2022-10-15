@@ -65,6 +65,19 @@ describe("PaymentAndRefund", function () {
         return { paymentContract, usdcContract, diaContract, admin, user1, user2 };
     }
 
+    /*
+     *  calculatePreTestValues is a helper function used throughout to DRY up the test code
+     */
+
+    async function calculatePreTestValues(paymentContract, tokenContract, userAddress, multiplier) {
+        const balanceBeforeRefund = await tokenContract.balanceOf(userAddress);
+        const expectedRefundInDollars = PRICE_IN_DOLLARS * multiplier;
+        const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(userAddress);
+        const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
+
+        return { balanceBeforeRefund, expectedRefundInDollars, calculatedRefundInDollars, calculatedRefundSixDecimals };
+    }
+
     describe("Deposit", function () {
         it("User can deposit USDC", async function () {
             const { paymentContract, usdcContract, user1 } = await loadFixture(
@@ -140,11 +153,13 @@ describe("PaymentAndRefund", function () {
                         .payUpfront(PRICE_IN_DOLLARS, JAN_FIRST);
                     await time.increaseTo(JAN_TENTH); 
 
-                    const balanceBeforeRefund = await usdcContract.balanceOf(user1.address);
-                    const expectedRefundInDollars = PRICE_IN_DOLLARS * 1.00;
-                    const calculatedRefundInDollars = await paymentContract.calculateRefundDollars(user1.address);
-                    const calculatedRefundSixDecimals = calculatedRefundInDollars * USDC_DECIMALS;
-
+                    const { 
+                        balanceBeforeRefund, 
+                        expectedRefundInDollars,
+                        calculatedRefundInDollars,
+                        calculatedRefundSixDecimals 
+                    } = await calculatePreTestValues(paymentContract, usdcContract, user1.address, 1.00);
+                        
                     expect(calculatedRefundInDollars).to.equal(expectedRefundInDollars);
 
                     await paymentContract.connect(user1).buyerClaimRefund();
