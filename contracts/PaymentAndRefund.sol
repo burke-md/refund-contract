@@ -29,7 +29,7 @@ contract PaymentAndRefund {
     ];
 
     uint64 public priceInDollars;
-    uint256 public depositedUSDC = 0;
+    uint128 public depositedUSDC = 0;
     mapping(address => Deposit) public deposits;
     address public admin;
     uint256 public constant MAX_TIME_FROM_START = 30 days;
@@ -116,7 +116,7 @@ contract PaymentAndRefund {
     function buyerClaimRefund() external {
         uint256 refundInDollars = calculateRefundDollars(msg.sender);
 
-        depositedUSDC -= refundInDollars;
+        depositedUSDC -= uint128(refundInDollars);
         delete deposits[msg.sender];
 
         USDC.transfer(msg.sender, refundInDollars * USDC_DECIMALS);
@@ -169,10 +169,14 @@ contract PaymentAndRefund {
      *  @param _buyer The user's wallet address who is to be removed.
      */
 
-    function sellerTerminateAgreement(address _buyer) external payable onlyAdmin {
+    function sellerTerminateAgreement(address _buyer)
+        external
+        payable
+        onlyAdmin
+    {
         uint256 refundInDollars = calculateRefundDollars(_buyer);
 
-        depositedUSDC -= refundInDollars;
+        depositedUSDC -= uint128(refundInDollars);
         delete deposits[_buyer];
 
         USDC.transfer(_buyer, refundInDollars * USDC_DECIMALS);
@@ -196,7 +200,7 @@ contract PaymentAndRefund {
                 ++i;
             }
         }
-        depositedUSDC -= dollarsToWithdraw;
+        depositedUSDC -= uint128(dollarsToWithdraw);
         USDC.transfer(admin, dollarsToWithdraw * USDC_DECIMALS);
     }
 
