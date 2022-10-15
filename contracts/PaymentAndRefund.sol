@@ -4,8 +4,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 pragma solidity 0.8.17;
 
-///@author M. Burke
-///@notice This is a payment contract that enforces a refund schedule.
+/*  @author M. Burke
+ *  @notice This is a payment contract that enforces a refund schedule.
+ */
 
 contract PaymentAndRefund {
     IERC20 USDC;
@@ -54,9 +55,10 @@ contract PaymentAndRefund {
         _;
     }
 
-    ///@notice Users are required to make allowance with USDC contract before calling.
-    ///@param _price The price in dollars to be paid.
-    ///@param _startTime The start time in seconds. See EPOCH time converter.
+    /*  @notice Users are required to make allowance with USDC contract before calling.
+     *  @param _price The price in dollars to be paid.
+     *  @param _startTime The start time in seconds. See EPOCH time converter.
+     */
 
     function payUpfront(uint64 _price, uint64 _startTime) external {
         uint64 currentPriceInDollars = priceInDollars;
@@ -116,17 +118,19 @@ contract PaymentAndRefund {
         USDC.transfer(msg.sender, refundInDollars * USDC_DECIMALS);
     }
 
-    ///@dev See that `priceInDollars` is mutable BUT current price is stored
-    ///     in user struct at time of purchase.
-    ///@param _price The price in dollars to be set.
+    /*  @dev See that `priceInDollars` is mutable BUT current price is stored
+     *       in user struct at time of purchase.
+     *  @param _price The price in dollars to be set.
+     */
 
     function setPrice(uint64 _price) external onlyAdmin {
         priceInDollars = _price;
     }
 
-    ///@dev See that `refundSchedule` is mutable BUT current schedule is
-    ///     stored in user struct at time of purchase.
-    ///@param _schedule The new 15 week schedule(as an array) to be set.
+    /*  @dev See that `refundSchedule` is mutable BUT current schedule is
+     *       stored in user struct at time of purchase.
+     *  @param _schedule The new 15 week schedule(as an array) to be set.
+     */
 
     function setRefundSchedule(uint8[15] calldata _schedule)
         external
@@ -156,8 +160,9 @@ contract PaymentAndRefund {
         refundSchedule = _schedule;
     }
 
-    ///@dev Push payment to user and removal of 'account'
-    ///@param _buyer The user's wallet address who is to be removed.
+    /*  @dev Push payment to user and removal of 'account'
+     *  @param _buyer The user's wallet address who is to be removed.
+     */
 
     function sellerTerminateAgreement(address _buyer) external onlyAdmin {
         uint256 refundInDollars = calculateRefundDollars(_buyer);
@@ -168,9 +173,10 @@ contract PaymentAndRefund {
         USDC.transfer(_buyer, refundInDollars * USDC_DECIMALS);
     }
 
-    ///@dev See calculation to ensure user refund policy is respected.
-    ///@param _buyers An array of active user accounts (wallet addresses)
-    ///       to withdraw funds from.
+    /*  @dev See calculation to ensure user refund policy is respected.
+     *  @param _buyers An array of active user accounts (wallet addresses)
+     *         to withdraw funds from.
+     */
 
     function sellerWithdraw(address[] calldata _buyers) external onlyAdmin {
         uint256 dollarsToWithdraw = 0;
@@ -189,9 +195,10 @@ contract PaymentAndRefund {
         USDC.transfer(admin, dollarsToWithdraw * USDC_DECIMALS);
     }
 
-    ///@notice This is used internally for book keeping but made available
-    ///        publicaly.
-    ///@param _buyer User wallet address.
+    /*  @notice This is used internally for book keeping but made available
+     *          publicly.
+     *  @param _buyer User wallet address.
+     */
 
     function calculateRefundDollars(address _buyer)
         public
@@ -215,28 +222,30 @@ contract PaymentAndRefund {
         return (paidDollars * multiplier) / 100;
     }
 
-    ///@notice This is used internally for book keeping but made available
-    ///        publicaly.
-    ///@param _buyer User wallet address.
+    /*  @notice This is used internally for book keeping but made available
+     *          publicly.
+     *  @param _buyer User wallet address.
+     */
 
     function calculateSafeWithdrawDollars(address _buyer)
         public
         view
         returns (uint256)
     {
-        uint256 accountRequirments = calculateRefundDollars(_buyer);
+        uint256 accountRequirements = calculateRefundDollars(_buyer);
         uint256 accountBalance = deposits[_buyer].balanceInDollars;
 
-        if (accountRequirments >= accountBalance) {
+        if (accountRequirements >= accountBalance) {
             return 0;
         }
 
-        return accountBalance - accountRequirments;
+        return accountBalance - accountRequirements;
     }
 
-    ///@notice Used interanlly for calculating where a user is within their
-    ///        refund schedule.
-    ///@param _buyer User wallet address.
+    /*  @notice Used internally for calculating where a user is within their
+     *          refund schedule.
+     *  @param _buyer User wallet address.
+     */
 
     function _getWeeksComplete(address _buyer) internal view returns (uint256) {
         uint256 startTime = deposits[_buyer].startTime;
@@ -251,10 +260,11 @@ contract PaymentAndRefund {
         return weeksComplete;
     }
 
-    ///@notice Used to recover ERC20 tokens transfered to contract
-    ///        outside of standard interactions.
-    ///@param _tokenContract The contract address of a standard ERC20
-    ///@param _amount The value (with correct decimals) to be recovered.
+    /*  @notice Used to recover ERC20 tokens transfered to contract
+     *          outside of standard interactions.
+     *  @param _tokenContract The contract address of a standard ERC20
+     *  @param _amount The value (with correct decimals) to be recovered.
+     */
 
     function rescueERC20Token(IERC20 _tokenContract, uint256 _amount)
         external
@@ -265,8 +275,9 @@ contract PaymentAndRefund {
             return;
         }
 
-        // For transfer of USDC make check (passed in `_amount` is ignored and
-        // amountToWithdraw is calculated.
+        /*  For transfer of USDC make check (passed in `_amount` is ignored and
+         *  amountToWithdraw is calculated.
+         */
 
         uint256 contractBalance = USDC.balanceOf(address(this));
 

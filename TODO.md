@@ -9,14 +9,14 @@
 - [ ] Since the code is so similar in the tests when you are testing different Week 5/15 etc scenarios, how about abstract these into helper functions? L:302
 
 - [ ] Functions that are onlyAdmin can be made payable because presumably the admin won’t be stupid enough to send ether in those transactions. This will save a little gas also
-- [ ] The solc optimizer should be set to 1 Million
 
-- [ ] publicly mispelled L:193
-- [ ] publicly mispelled L:219
-- [ ] interanlly spelled wrong L: 237
-- [ ] requirments also misspelled L:230
+- [x] The solc optimizer should be set to 1 Million
+- [x] publicly mispelled L:193
+- [x] publicly mispelled L:219
+- [x] interanlly spelled wrong L: 237
+- [x] requirments also misspelled L:230
 
-
+***
 
 - [x] format USDCABI.json (removed                              - (use standard ERC20 ABI)
 - [x] Handle Forktest commented test                            - (removed file - test mirror in main test file)
